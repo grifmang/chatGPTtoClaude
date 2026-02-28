@@ -1,0 +1,56 @@
+.stepper {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.stepper-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.stepper-step--active {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.stepper-step--completed {
+  color: #16a34a;
+  cursor: pointer;
+}
+
+.stepper-step--completed:hover {
+  text-decoration: underline;
+}
+
+.stepper-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stepper-step--completed .stepper-number {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+.stepper-step--active .stepper-number {
+  border-color: #6366f1;
+  color: #6366f1;
+}
