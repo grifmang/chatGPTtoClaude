@@ -123,7 +123,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
-              origin: "https://chatgpt-to-claude.vercel.app",
+              origin: "https://migrategpt.org",
             }));
           }, 10);
         }
@@ -155,7 +155,7 @@ describe("bookmarklet run()", () => {
     // Verify postMessage was called with conversations data
     expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
       { type: "conversations", data: expect.any(Array) },
-      "https://chatgpt-to-claude.vercel.app",
+      "https://migrategpt.org",
     );
 
     // Verify done state
@@ -184,7 +184,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
-              origin: "https://chatgpt-to-claude.vercel.app",
+              origin: "https://migrategpt.org",
             }));
           }, 10);
         }
@@ -258,7 +258,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
-              origin: "https://chatgpt-to-claude.vercel.app",
+              origin: "https://migrategpt.org",
             }));
           }, 10);
         }
@@ -285,7 +285,7 @@ describe("bookmarklet run()", () => {
           expect.objectContaining({ id: "conv-3" }),
         ]),
       },
-      "https://chatgpt-to-claude.vercel.app",
+      "https://migrategpt.org",
     );
   });
 
@@ -354,7 +354,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
-              origin: "https://chatgpt-to-claude.vercel.app",
+              origin: "https://migrategpt.org",
             }));
           }, 10);
         }
@@ -372,7 +372,7 @@ describe("bookmarklet run()", () => {
     // Should still open the app and send empty conversations array
     expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
       { type: "conversations", data: [] },
-      "https://chatgpt-to-claude.vercel.app",
+      "https://migrategpt.org",
     );
 
     expect(mockOverlay.setDone).toHaveBeenCalled();
@@ -425,7 +425,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
-              origin: "https://chatgpt-to-claude.vercel.app",
+              origin: "https://migrategpt.org",
             }));
           }, 10);
         }

@@ -4,7 +4,7 @@
 import { getAccessToken, fetchConversationList, fetchConversation } from "./api";
 import { createOverlay } from "./overlay";
 
-const APP_URL = "https://chatgpt-to-claude.vercel.app";
+const APP_URL = "https://migrategpt.org";
 const DELAY_MS = 100;
 
 function delay(ms: number): Promise<void> {
