@@ -1,73 +1,133 @@
-# React + TypeScript + Vite
+# ChatGPT to Claude Memory
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Tests](https://img.shields.io/badge/tests-251%20passing-brightgreen)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Currently, two official plugins are available:
+Migrate your ChatGPT conversation memories to Claude — entirely in your browser. No server, no data leaves your machine.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## How It Works
 
-## React Compiler
+ChatGPT to Claude Memory extracts facts about you from your ChatGPT conversations (preferences, technical profile, projects, identity, recurring interests) and formats them for import into Claude's memory.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Two ways to get your data:**
 
-## Expanding the ESLint configuration
+1. **ZIP export** — Request a data export from ChatGPT, download the ZIP, and upload it here
+2. **Bookmarklet** (fast way) — Drag a bookmarklet to your bookmark bar, click it on chatgpt.com, and your conversations are sent directly to the app via `postMessage`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Two extraction modes:**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Heuristic (default)** — Five pattern-matching extractors run locally with zero API calls
+- **API-enhanced (optional)** — Provide your own Claude API key for LLM-powered extraction via Claude Haiku
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+After extraction, you review and approve each memory candidate, then copy the result into a new Claude conversation to save it.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Start the dev server
+npm run dev
+
+# Run tests
+npm test
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Building the Bookmarklet
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd bookmarklet
+npm install
+npm run build
 ```
+
+This produces `bookmarklet/dist/bookmarklet.js`, which is imported by the web app at build time via Vite's `?raw` import.
+
+## Project Structure
+
+```
+├── src/
+│   ├── App.tsx                  # Main app with postMessage listener
+│   ├── types.ts                 # Shared TypeScript types
+│   ├── parser/
+│   │   ├── zipParser.ts         # Extracts conversations.json from ZIP
+│   │   └── conversationParser.ts # Walks ChatGPT mapping tree → flat messages
+│   ├── extractors/
+│   │   ├── index.ts             # Pipeline: runs all 5 extractors
+│   │   ├── preferenceExtractor.ts
+│   │   ├── technicalExtractor.ts
+│   │   ├── projectExtractor.ts
+│   │   ├── identityExtractor.ts
+│   │   ├── themeExtractor.ts
+│   │   └── apiExtractor.ts      # Claude API-powered extraction
+│   ├── export/
+│   │   └── markdownExport.ts    # Formats approved memories as Markdown
+│   └── components/
+│       ├── UploadPage.tsx       # 3-step wizard with bookmarklet install
+│       ├── ReviewPage.tsx       # Review/approve/reject candidates
+│       ├── MemoryCard.tsx       # Individual memory candidate card
+│       ├── ExportModal.tsx      # Copy-to-clipboard export flow
+│       └── Stepper.tsx          # Step indicator
+├── bookmarklet/
+│   ├── build.ts                 # esbuild → javascript: URI
+│   └── src/
+│       ├── bookmarklet.ts       # Main entry: auth → fetch → postMessage
+│       ├── api.ts               # ChatGPT internal API helpers
+│       └── overlay.ts           # Progress overlay injected into chatgpt.com
+└── docs/plans/                  # Design and implementation docs
+```
+
+## Security
+
+This app is designed with a privacy-first approach:
+
+- **Runs entirely in your browser** — no backend server, no data transmitted to third parties
+- **API key is memory-only** — if you use the optional Claude API extraction, your key is held in memory only, never persisted to storage, and sent directly to `api.anthropic.com`
+- **postMessage origin validation** — the app only accepts messages from `chatgpt.com` and `chat.openai.com`; localhost is gated behind dev mode
+- **No innerHTML** — all text rendering uses React JSX (auto-escaped) or `.textContent` (bookmarklet overlay)
+- **Input validation** — ZIP contents are validated as JSON arrays; API responses are validated against category/confidence whitelists
+- **Pagination safeguard** — bookmarklet limits to 500 pages to prevent infinite loops
+
+## Testing
+
+251 tests across 21 test files covering:
+
+- Component rendering and interaction (UploadPage, ReviewPage, MemoryCard, ExportModal, Stepper)
+- App state transitions and error handling
+- postMessage listener security (origin validation, type checking)
+- ZIP parsing edge cases (invalid JSON, missing files, non-array data)
+- Conversation parser (tree walking, content types, null handling)
+- All 5 heuristic extractors (pattern matching, deduplication, edge cases)
+- API extractor (prompt building, response parsing, batching, error handling)
+- Markdown export (grouping, sections, empty states)
+- Bookmarklet (hostname validation, cancellation, popup blocking, timeouts)
+- Overlay (DOM injection, XSS prevention, duplicate prevention)
+
+```bash
+# Run all tests (watch mode)
+npm test
+
+# Run once
+npm run test:run
+
+# Run bookmarklet tests
+cd bookmarklet && npm test
+```
+
+## Tech Stack
+
+- **React 19** + **TypeScript 5.9** — UI framework
+- **Vite 7** — build tool and dev server
+- **Vitest 4** + **React Testing Library** — testing
+- **JSZip** — ZIP file parsing
+- **esbuild** — bookmarklet bundling
+
+## License
+
+MIT
