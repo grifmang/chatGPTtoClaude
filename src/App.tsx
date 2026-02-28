@@ -1,35 +1,84 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import type { MemoryCandidate } from "./types";
+import { extractConversations } from "./parser/zipParser";
+import { parseConversation } from "./parser/conversationParser";
+import { extractAllMemories } from "./extractors";
+import { exportToMarkdown } from "./export/markdownExport";
+import { UploadPage } from "./components/UploadPage";
+import { ReviewPage } from "./components/ReviewPage";
+import { ExportModal } from "./components/ExportModal";
+import "./App.css";
+
+type AppState = "upload" | "review" | "export";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [state, setState] = useState<AppState>("upload");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
+  const [exportMarkdown, setExportMarkdown] = useState("");
+
+  const handleFileSelected = async (file: File) => {
+    setIsProcessing(true);
+    setError(undefined);
+
+    try {
+      const rawConversations = await extractConversations(file);
+      const parsed = rawConversations.map(parseConversation);
+      const memories = extractAllMemories(parsed);
+      setCandidates(memories);
+      setState("review");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdateCandidate = (
+    id: string,
+    updates: Partial<Pick<MemoryCandidate, "status" | "text">>,
+  ) => {
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    );
+  };
+
+  const handleExport = () => {
+    const markdown = exportToMarkdown(candidates);
+    setExportMarkdown(markdown);
+    setState("export");
+  };
+
+  const handleCloseModal = () => {
+    setState("review");
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      {state === "upload" && (
+        <UploadPage
+          onFileSelected={handleFileSelected}
+          isProcessing={isProcessing}
+          error={error}
+        />
+      )}
+
+      {(state === "review" || state === "export") && (
+        <ReviewPage
+          candidates={candidates}
+          onUpdateCandidate={handleUpdateCandidate}
+          onExport={handleExport}
+        />
+      )}
+
+      {state === "export" && (
+        <ExportModal markdown={exportMarkdown} onClose={handleCloseModal} />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
