@@ -18,5 +18,15 @@ export async function extractConversations(
   }
 
   const text = await entry.async("text");
-  return JSON.parse(text) as ChatGPTConversation[];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("conversations.json contains invalid JSON");
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error("conversations.json must contain a JSON array");
+  }
+  return parsed as ChatGPTConversation[];
 }

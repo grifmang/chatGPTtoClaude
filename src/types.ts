@@ -54,7 +54,7 @@ export type ChatGPTConversation = {
   create_time: number;
   update_time: number;
   mapping: Record<string, ChatGPTMappingNode>;
-  current_node: string;
+  current_node: string | null;
   default_model_slug: string | null;
   gizmo_id: string | null;
   id: string;

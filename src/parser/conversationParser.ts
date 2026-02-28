@@ -36,6 +36,18 @@ function flattenContent(content: ChatGPTContent): string {
 export function parseConversation(
   conv: ChatGPTConversation,
 ): ParsedConversation {
+  // Handle conversations with no messages
+  if (conv.current_node === null) {
+    return {
+      id: conv.id,
+      title: conv.title,
+      model: conv.default_model_slug,
+      createdAt: conv.create_time,
+      gizmoId: conv.gizmo_id,
+      messages: [],
+    };
+  }
+
   // Walk from current_node up through parent links to collect the path
   const path: ChatGPTMappingNode[] = [];
   let nodeId: string | null = conv.current_node;
