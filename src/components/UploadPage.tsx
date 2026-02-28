@@ -30,8 +30,15 @@ export function UploadPage({
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) {
+    if (file && file.name.endsWith(".zip")) {
       onFileSelected(file);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleDropZoneClick();
     }
   };
 
@@ -64,7 +71,10 @@ export function UploadPage({
       ) : (
         <div
           className={`upload-drop-zone ${isDragging ? "dragging" : ""}`}
+          role="button"
+          tabIndex={0}
           onClick={handleDropZoneClick}
+          onKeyDown={handleKeyDown}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

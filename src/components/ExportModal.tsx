@@ -15,8 +15,12 @@ export function ExportModal({ markdown, onClose }: ExportModalProps) {
   }, [copied]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(markdown);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+    } catch {
+      // Clipboard API unavailable (e.g., non-HTTPS context)
+    }
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
