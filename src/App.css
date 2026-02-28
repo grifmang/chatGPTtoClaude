@@ -87,3 +87,27 @@
 .btn-copy:hover {
   background-color: #2a3a4a;
 }
+
+/* ─── Enhanced Export Modal ──────────────────────────────────────────────────── */
+
+.modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.modal-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.import-checklist {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  color: #aaa;
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+}
+
+.import-actions {
+  display: flex;
+  gap: 0.75rem;
+}

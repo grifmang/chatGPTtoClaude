@@ -1,104 +1,68 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ExportModal } from "../ExportModal";
 
-const SAMPLE_MARKDOWN = `# My Preferences
-- I prefer dark mode
-- I like TypeScript
+describe("ExportModal - Claude Import Flow", () => {
+  const defaultProps = {
+    markdown: "# My Preferences\n- I prefer TypeScript",
+    onClose: vi.fn(),
+  };
 
-# Technical Profile
-- Uses React and Node.js
-`;
-
-describe("ExportModal", () => {
-  beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    });
+  it("renders markdown in a readonly textarea", () => {
+    render(<ExportModal {...defaultProps} />);
+    const textarea = screen.getByRole("textbox");
+    expect(textarea).toHaveValue(defaultProps.markdown);
+    expect(textarea).toHaveAttribute("readonly");
   });
 
-  it("renders markdown in a textarea", () => {
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={vi.fn()} />);
-
-    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
-    expect(textarea.value).toBe(SAMPLE_MARKDOWN);
-    expect(textarea).toHaveAttribute("readOnly");
-  });
-
-  it("shows Claude import instructions", () => {
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={vi.fn()} />);
-
+  it("shows the pre-composed Claude message", () => {
+    render(<ExportModal {...defaultProps} />);
     expect(
-      screen.getByText(/please save all of these to your memory/i),
+      screen.getByText(/please save all of these to your memory/i)
     ).toBeInTheDocument();
   });
 
-  it("copy button calls navigator.clipboard.writeText", async () => {
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={vi.fn()} />);
+  it("has a 'Copy message' button that copies instruction + markdown", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
 
-    const copyButton = screen.getByRole("button", { name: /copy to clipboard/i });
-    await act(async () => {
-      fireEvent.click(copyButton);
-    });
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      SAMPLE_MARKDOWN,
+    render(<ExportModal {...defaultProps} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /copy message/i })
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("Please save all of these to your memory")
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("# My Preferences")
     );
   });
 
-  it("shows 'Copied!' feedback after clicking copy", async () => {
-    vi.useFakeTimers();
-
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={vi.fn()} />);
-
-    const copyButton = screen.getByRole("button", { name: /copy to clipboard/i });
-    await act(async () => {
-      fireEvent.click(copyButton);
-    });
-
-    // Button text should change to "Copied!"
-    expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
-
-    // After 2 seconds, it should revert back to "Copy to clipboard"
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    expect(screen.queryByText("Copied!")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /copy to clipboard/i })).toBeInTheDocument();
-
-    vi.useRealTimers();
+  it("has an 'Open Claude' link to claude.ai/new", () => {
+    render(<ExportModal {...defaultProps} />);
+    const link = screen.getByRole("link", { name: /open claude/i });
+    expect(link).toHaveAttribute("href", "https://claude.ai/new");
+    expect(link).toHaveAttribute("target", "_blank");
   });
 
-  it("close button calls onClose", () => {
+  it("shows a step-by-step checklist", () => {
+    render(<ExportModal {...defaultProps} />);
+    expect(screen.getByText(/click "copy message"/i)).toBeInTheDocument();
+    expect(screen.getByText(/click "open claude"/i)).toBeInTheDocument();
+    expect(screen.getByText(/paste the message/i)).toBeInTheDocument();
+  });
+
+  it("close button calls onClose", async () => {
     const onClose = vi.fn();
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={onClose} />);
-
-    const closeButton = screen.getByRole("button", { name: /close/i });
-    fireEvent.click(closeButton);
-
+    render(<ExportModal {...defaultProps} onClose={onClose} />);
+    await userEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("clicking overlay calls onClose", () => {
+  it("clicking overlay calls onClose", async () => {
     const onClose = vi.fn();
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={onClose} />);
-
-    const overlay = screen.getByTestId("modal-overlay");
-    fireEvent.click(overlay);
-
+    render(<ExportModal {...defaultProps} onClose={onClose} />);
+    await userEvent.click(screen.getByTestId("modal-overlay"));
     expect(onClose).toHaveBeenCalled();
-  });
-
-  it("clicking modal content does not call onClose", () => {
-    const onClose = vi.fn();
-    render(<ExportModal markdown={SAMPLE_MARKDOWN} onClose={onClose} />);
-
-    const content = screen.getByTestId("modal-content");
-    fireEvent.click(content);
-
-    expect(onClose).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,9 @@ type ExportModalProps = {
   onClose: () => void;
 };
 
+const CLAUDE_MESSAGE_PREFIX =
+  "Please save all of these to your memory:\n\n";
+
 export function ExportModal({ markdown, onClose }: ExportModalProps) {
   const [copied, setCopied] = useState(false);
 
@@ -14,12 +17,14 @@ export function ExportModal({ markdown, onClose }: ExportModalProps) {
     return () => clearTimeout(timer);
   }, [copied]);
 
-  const handleCopy = async () => {
+  const fullMessage = CLAUDE_MESSAGE_PREFIX + markdown;
+
+  const handleCopyMessage = async () => {
     try {
-      await navigator.clipboard.writeText(markdown);
+      await navigator.clipboard.writeText(fullMessage);
       setCopied(true);
     } catch {
-      // Clipboard API unavailable (e.g., non-HTTPS context)
+      // Clipboard API unavailable
     }
   };
 
@@ -41,28 +46,50 @@ export function ExportModal({ markdown, onClose }: ExportModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>Export Your Memories</h2>
+          <h2>Import into Claude</h2>
           <button className="btn modal-close-btn" onClick={onClose}>
             Close
           </button>
         </div>
 
-        <p className="modal-instructions">
-          Copy the text below and paste it into Claude with the message:{" "}
-          <strong>"Please save all of these to your memory."</strong>
-        </p>
+        <div className="modal-section">
+          <h3>Your extracted memories</h3>
+          <textarea
+            className="modal-textarea"
+            value={markdown}
+            readOnly
+            rows={10}
+          />
+        </div>
 
-        <textarea
-          className="modal-textarea"
-          value={markdown}
-          readOnly
-          rows={15}
-        />
+        <div className="modal-section">
+          <h3>Import to Claude's memory</h3>
+          <p className="modal-instructions">
+            The message below includes the instruction{" "}
+            <strong>"Please save all of these to your memory"</strong>{" "}
+            followed by your extracted memories.
+          </p>
 
-        <div className="modal-actions">
-          <button className="btn btn-copy" onClick={handleCopy}>
-            {copied ? "Copied!" : "Copy to clipboard"}
-          </button>
+          <ol className="import-checklist">
+            <li>Click "Copy message" to copy the full message</li>
+            <li>Click "Open Claude" to start a new conversation</li>
+            <li>Paste the message and send it</li>
+            <li>Claude will confirm the memories have been saved</li>
+          </ol>
+
+          <div className="import-actions">
+            <button className="btn btn-primary" onClick={handleCopyMessage}>
+              {copied ? "Copied!" : "Copy message"}
+            </button>
+            <a
+              href="https://claude.ai/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+            >
+              Open Claude
+            </a>
+          </div>
         </div>
       </div>
     </div>
