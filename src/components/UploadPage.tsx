@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Stepper } from "./Stepper";
+import bookmarkletRaw from "../../bookmarklet/dist/bookmarklet.js?raw";
 import "./UploadPage.css";
 
 const STEPS = ["Get your data", "Download export", "Upload & extract"];
-const BOOKMARKLET_CODE = "javascript:void(document.title)";
+const BOOKMARKLET_CODE = bookmarkletRaw.trim();
 
 type UploadPageProps = {
   onFileSelected: (file: File, apiKey?: string) => void;
