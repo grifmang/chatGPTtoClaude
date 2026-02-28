@@ -7,11 +7,13 @@ import { extractThemes } from "./themeExtractor";
 
 // ─── Re-exports ──────────────────────────────────────────────────────────────
 
-export { extractPreferences } from "./preferenceExtractor";
-export { extractTechnical } from "./technicalExtractor";
-export { extractProjects } from "./projectExtractor";
-export { extractIdentity } from "./identityExtractor";
-export { extractThemes } from "./themeExtractor";
+export {
+  extractPreferences,
+  extractTechnical,
+  extractProjects,
+  extractIdentity,
+  extractThemes,
+};
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────
 
