@@ -1,0 +1,17 @@
+{
+  "name": "chatgpt-export-bookmarklet",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "npx tsx build.ts",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
