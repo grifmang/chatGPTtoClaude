@@ -15,6 +15,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://chat.openai.com",
 ]);
 
+const isDev = import.meta.env.DEV;
+
 type AppState = "upload" | "review" | "export";
 
 function App() {
@@ -70,7 +72,9 @@ function App() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (!ALLOWED_ORIGINS.has(event.origin) && !event.origin.startsWith("http://localhost")) return;
+      const originAllowed = ALLOWED_ORIGINS.has(event.origin) ||
+        (isDev && event.origin.startsWith("http://localhost"));
+      if (!originAllowed) return;
       if (
         event.data?.type === "conversations" &&
         Array.isArray(event.data.data)
@@ -82,7 +86,10 @@ function App() {
     window.addEventListener("message", handleMessage);
 
     if (window.opener) {
-      window.opener.postMessage({ type: "ready" }, "*");
+      // Send "ready" handshake to each allowed opener origin
+      for (const origin of ALLOWED_ORIGINS) {
+        window.opener.postMessage({ type: "ready" }, origin);
+      }
     }
 
     return () => {

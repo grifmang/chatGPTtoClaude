@@ -26,6 +26,7 @@ vi.mock("../../extractors/apiExtractor", () => ({
   extractWithApi: vi.fn(),
 }));
 
+// Vite's import.meta.env.DEV is true in test/dev mode by default
 describe("App postMessage listener", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -219,7 +219,7 @@ describe("App integration – ready signal via postMessage", () => {
     });
   });
 
-  it("posts { type: 'ready' } to window.opener on mount", () => {
+  it("posts { type: 'ready' } to window.opener for each allowed origin on mount", () => {
     const mockPostMessage = vi.fn();
     Object.defineProperty(window, "opener", {
       value: { postMessage: mockPostMessage },
@@ -229,8 +229,15 @@ describe("App integration – ready signal via postMessage", () => {
 
     render(<App />);
 
-    expect(mockPostMessage).toHaveBeenCalledWith({ type: "ready" }, "*");
-    expect(mockPostMessage).toHaveBeenCalledTimes(1);
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      { type: "ready" },
+      "https://chatgpt.com",
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      { type: "ready" },
+      "https://chat.openai.com",
+    );
+    expect(mockPostMessage).toHaveBeenCalledTimes(2);
   });
 
   it("does not throw when window.opener is null", () => {
