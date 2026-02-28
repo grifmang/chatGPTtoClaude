@@ -16,6 +16,10 @@ export interface Overlay {
  * @param onCancel - optional callback invoked when the user clicks Cancel / Close.
  */
 export function createOverlay(onCancel?: () => void): Overlay {
+  // Remove any existing overlay to prevent duplicates
+  const existing = document.getElementById("cgpt-export-overlay");
+  if (existing) existing.remove();
+
   // ── Container (full-screen backdrop) ──────────────────────────────
   const container = document.createElement("div");
   container.id = "cgpt-export-overlay";

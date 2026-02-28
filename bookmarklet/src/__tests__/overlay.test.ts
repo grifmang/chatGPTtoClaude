@@ -84,6 +84,24 @@ describe("createOverlay", () => {
     expect(() => button.click()).not.toThrow();
   });
 
+  it("creating a second overlay removes the first", () => {
+    const first = createOverlay();
+    const firstEl = document.getElementById("cgpt-export-overlay")!;
+    expect(firstEl).not.toBeNull();
+
+    // Create a second overlay — the first element should be removed
+    const second = createOverlay();
+    const allOverlays = document.querySelectorAll("#cgpt-export-overlay");
+    expect(allOverlays).toHaveLength(1);
+
+    // The surviving element should belong to the second overlay
+    second.setProgress("second");
+    expect(allOverlays[0].textContent).toContain("second");
+
+    // The original DOM node should no longer be in the document
+    expect(firstEl.parentElement).toBeNull();
+  });
+
   it("applies correct inline styles to the container", () => {
     overlay = createOverlay();
     const el = document.getElementById("cgpt-export-overlay")!;

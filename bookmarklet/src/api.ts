@@ -4,6 +4,9 @@
 
 const BASE = "https://chatgpt.com";
 
+/** Hard limit on pages fetched to prevent infinite loops in the browser. */
+const MAX_PAGES = 500;
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -23,7 +26,11 @@ export async function getAccessToken(): Promise<string> {
   }
 
   const data = await res.json();
-  return data.accessToken;
+  const token: unknown = data.accessToken;
+  if (typeof token !== "string" || token.length === 0) {
+    throw new Error("Session expired or invalid. Please log in to ChatGPT and try again.");
+  }
+  return token;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,9 +59,15 @@ export async function fetchConversationList(
 ): Promise<ConversationListItem[]> {
   const all: ConversationListItem[] = [];
   let offset = 0;
+  let page = 0;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
+    if (++page > MAX_PAGES) {
+      throw new Error(
+        `Pagination safety limit reached (${MAX_PAGES} pages). Aborting to prevent infinite loop.`,
+      );
+    }
     const url = `${BASE}/backend-api/conversations?offset=${offset}&limit=${pageSize}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },

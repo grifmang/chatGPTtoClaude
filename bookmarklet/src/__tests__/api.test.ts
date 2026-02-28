@@ -46,6 +46,13 @@ describe("getAccessToken", () => {
 
     await expect(getAccessToken()).rejects.toThrow();
   });
+
+  it("throws when accessToken is missing from response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(jsonResponse({}));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(getAccessToken()).rejects.toThrow(/session expired or invalid/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
