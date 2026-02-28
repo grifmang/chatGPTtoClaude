@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { MemoryCandidate } from "./types";
+import { useState, useEffect, useCallback } from "react";
+import type { ChatGPTConversation, MemoryCandidate } from "./types";
 import { extractConversations } from "./parser/zipParser";
 import { parseConversation } from "./parser/conversationParser";
 import { extractAllMemories } from "./extractors";
@@ -20,36 +20,64 @@ function App() {
   const [exportMarkdown, setExportMarkdown] = useState("");
   const [progress, setProgress] = useState("");
 
-  const handleFileSelected = async (file: File, apiKey?: string) => {
-    setIsProcessing(true);
-    setError(undefined);
-    setProgress("");
-
-    try {
-      const rawConversations = await extractConversations(file);
-      const parsed = rawConversations.map(parseConversation);
-
-      let memories: MemoryCandidate[];
-
-      if (apiKey) {
-        memories = await extractWithApi(parsed, apiKey, (current, total) => {
-          setProgress(`Analyzing batch ${current} of ${total}...`);
-        });
-      } else {
-        memories = extractAllMemories(parsed);
-      }
-
-      setCandidates(memories);
-      setState("review");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
-    } finally {
-      setIsProcessing(false);
+  const processConversations = useCallback(
+    async (rawConversations: ChatGPTConversation[], apiKey?: string) => {
+      setIsProcessing(true);
+      setError(undefined);
       setProgress("");
-    }
+
+      try {
+        const parsed = rawConversations.map(parseConversation);
+
+        let memories: MemoryCandidate[];
+
+        if (apiKey) {
+          memories = await extractWithApi(parsed, apiKey, (current, total) => {
+            setProgress(`Analyzing batch ${current} of ${total}...`);
+          });
+        } else {
+          memories = extractAllMemories(parsed);
+        }
+
+        setCandidates(memories);
+        setState("review");
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred",
+        );
+      } finally {
+        setIsProcessing(false);
+        setProgress("");
+      }
+    },
+    [],
+  );
+
+  const handleFileSelected = async (file: File, apiKey?: string) => {
+    const rawConversations = await extractConversations(file);
+    await processConversations(rawConversations, apiKey);
   };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        event.data?.type === "conversations" &&
+        Array.isArray(event.data.data)
+      ) {
+        processConversations(event.data.data);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    if (window.opener) {
+      window.opener.postMessage({ type: "ready" }, "*");
+    }
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [processConversations]);
 
   const handleUpdateCandidate = (
     id: string,
