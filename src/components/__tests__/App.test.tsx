@@ -15,6 +15,10 @@ vi.mock("../../extractors", () => ({
   extractAllMemories: vi.fn(),
 }));
 
+vi.mock("../../extractors/apiExtractor", () => ({
+  extractWithApi: vi.fn(),
+}));
+
 describe("App", () => {
   it("renders upload page initially", () => {
     render(<App />);

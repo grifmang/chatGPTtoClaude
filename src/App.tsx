@@ -3,6 +3,7 @@ import type { MemoryCandidate } from "./types";
 import { extractConversations } from "./parser/zipParser";
 import { parseConversation } from "./parser/conversationParser";
 import { extractAllMemories } from "./extractors";
+import { extractWithApi } from "./extractors/apiExtractor";
 import { exportToMarkdown } from "./export/markdownExport";
 import { UploadPage } from "./components/UploadPage";
 import { ReviewPage } from "./components/ReviewPage";
@@ -17,15 +18,27 @@ function App() {
   const [error, setError] = useState<string | undefined>();
   const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
   const [exportMarkdown, setExportMarkdown] = useState("");
+  const [progress, setProgress] = useState("");
 
-  const handleFileSelected = async (file: File, _apiKey?: string) => {
+  const handleFileSelected = async (file: File, apiKey?: string) => {
     setIsProcessing(true);
     setError(undefined);
+    setProgress("");
 
     try {
       const rawConversations = await extractConversations(file);
       const parsed = rawConversations.map(parseConversation);
-      const memories = extractAllMemories(parsed);
+
+      let memories: MemoryCandidate[];
+
+      if (apiKey) {
+        memories = await extractWithApi(parsed, apiKey, (current, total) => {
+          setProgress(`Analyzing batch ${current} of ${total}...`);
+        });
+      } else {
+        memories = extractAllMemories(parsed);
+      }
+
       setCandidates(memories);
       setState("review");
     } catch (err) {
@@ -34,6 +47,7 @@ function App() {
       );
     } finally {
       setIsProcessing(false);
+      setProgress("");
     }
   };
 
@@ -63,6 +77,7 @@ function App() {
           onFileSelected={handleFileSelected}
           isProcessing={isProcessing}
           error={error}
+          progress={progress}
         />
       )}
 
