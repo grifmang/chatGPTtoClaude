@@ -10,6 +10,11 @@ import { ReviewPage } from "./components/ReviewPage";
 import { ExportModal } from "./components/ExportModal";
 import "./App.css";
 
+const ALLOWED_ORIGINS = new Set([
+  "https://chatgpt.com",
+  "https://chat.openai.com",
+]);
+
 type AppState = "upload" | "review" | "export";
 
 function App() {
@@ -54,12 +59,18 @@ function App() {
   );
 
   const handleFileSelected = async (file: File, apiKey?: string) => {
-    const rawConversations = await extractConversations(file);
-    await processConversations(rawConversations, apiKey);
+    try {
+      const rawConversations = await extractConversations(file);
+      await processConversations(rawConversations, apiKey);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setIsProcessing(false);
+    }
   };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (!ALLOWED_ORIGINS.has(event.origin) && !event.origin.startsWith("http://localhost")) return;
       if (
         event.data?.type === "conversations" &&
         Array.isArray(event.data.data)

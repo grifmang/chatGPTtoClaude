@@ -49,6 +49,7 @@ describe("App postMessage listener", () => {
       window.dispatchEvent(
         new MessageEvent("message", {
           data: { type: "conversations", data: [conversation] },
+          origin: "https://chatgpt.com",
         }),
       );
     });
