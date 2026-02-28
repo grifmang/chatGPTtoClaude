@@ -28,7 +28,7 @@ const TECH_KEYWORDS: string[] = [
 // Build word-boundary regex for each keyword
 const TECH_REGEXES: Array<{ keyword: string; regex: RegExp }> =
   TECH_KEYWORDS.map((kw) => ({
-    keyword: kw.replace(/\\[+.#]/g, (m) => m.slice(1)), // unescape for display
+    keyword: kw.replace(/\\(.)/g, "$1"), // unescape for display
     regex: new RegExp(`\\b${kw}\\b`, "i"),
   }));
 

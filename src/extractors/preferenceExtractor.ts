@@ -64,7 +64,6 @@ export function extractPreferences(
       if (msg.role !== "user") continue;
 
       // Try each pattern, break after first match per message
-      let matched = false;
       for (const pattern of ALL_PATTERNS) {
         const match = pattern.regex.exec(msg.text);
         if (match) {
@@ -78,11 +77,9 @@ export function extractPreferences(
             sourceTimestamp: conv.createdAt,
             status: "pending",
           });
-          matched = true;
           break;
         }
       }
-      if (matched) continue;
     }
   }
 
