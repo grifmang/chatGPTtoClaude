@@ -124,6 +124,9 @@ export function UploadPage({
             hours.
           </p>
           <div className="wizard-nav">
+            <button className="btn" onClick={() => setStep(0)}>
+              Back
+            </button>
             <button
               className="btn btn-primary"
               onClick={() => setStep(2)}
@@ -144,6 +147,11 @@ export function UploadPage({
             </div>
           ) : (
             <>
+              <div className="wizard-nav wizard-nav-top">
+                <button className="btn" onClick={() => setStep(1)}>
+                  Back
+                </button>
+              </div>
               <div
                 className={`upload-drop-zone ${isDragging ? "dragging" : ""}`}
                 role="button"

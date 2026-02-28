@@ -44,6 +44,22 @@ describe("UploadPage - Wizard", () => {
     expect(screen.getByText(/drop your/i)).toBeInTheDocument();
   });
 
+  it("navigates back from step 2 to step 1", async () => {
+    render(<UploadPage {...defaultProps} />);
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(screen.getByText(/request your data export/i)).toBeInTheDocument();
+  });
+
+  it("navigates back from step 3 to step 2", async () => {
+    render(<UploadPage {...defaultProps} />);
+    await userEvent.click(screen.getByText(/already have my zip/i));
+    expect(screen.getByText(/drop your/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+  });
+
   it("step 3 shows the file upload zone", async () => {
     render(<UploadPage {...defaultProps} />);
     await userEvent.click(screen.getByText(/already have my zip/i));
