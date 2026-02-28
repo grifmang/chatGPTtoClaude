@@ -18,7 +18,7 @@ function App() {
   const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
   const [exportMarkdown, setExportMarkdown] = useState("");
 
-  const handleFileSelected = async (file: File) => {
+  const handleFileSelected = async (file: File, _apiKey?: string) => {
     setIsProcessing(true);
     setError(undefined);
 

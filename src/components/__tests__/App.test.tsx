@@ -32,16 +32,19 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the file upload zone initially", () => {
-    const { container } = render(<App />);
-
-    expect(container.querySelector(".upload-drop-zone")).toBeInTheDocument();
-  });
-
-  it("renders the file input accepting .zip files", () => {
+  it("renders the wizard stepper initially", () => {
     render(<App />);
 
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    expect(input.accept).toBe(".zip");
+    expect(screen.getByText("Get your data")).toBeInTheDocument();
+    expect(screen.getByText("Download export")).toBeInTheDocument();
+    expect(screen.getByText("Upload & extract")).toBeInTheDocument();
+  });
+
+  it("starts on step 1 with ChatGPT export instructions", () => {
+    render(<App />);
+
+    expect(
+      screen.getByRole("link", { name: /open chatgpt data controls/i }),
+    ).toBeInTheDocument();
   });
 });
