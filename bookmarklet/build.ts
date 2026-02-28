@@ -14,7 +14,9 @@ async function main() {
   });
 
   const bundle = readFileSync("dist/bundle.js", "utf-8").trim();
-  const bookmarklet = `javascript:void(${encodeURIComponent(bundle)})`;
+  // Don't wrap in void() — esbuild's "use strict"; breaks that syntax.
+  // Append void(0) to prevent page navigation from the last expression.
+  const bookmarklet = `javascript:${encodeURIComponent(bundle + "void(0);")}`;
   writeFileSync("dist/bookmarklet.js", bookmarklet);
 
   console.log(`Bookmarklet built (${bookmarklet.length} chars)`);
