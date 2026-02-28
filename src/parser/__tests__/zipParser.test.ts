@@ -71,4 +71,33 @@ describe("extractConversations", () => {
       "conversations.json not found in ZIP archive",
     );
   });
+
+  it("throws when conversations.json contains invalid JSON", async () => {
+    const zip = new JSZip();
+    zip.file("conversations.json", "this is not valid json {{{");
+
+    const file = await zipToFile(zip);
+
+    await expect(extractConversations(file)).rejects.toThrow(
+      "conversations.json contains invalid JSON",
+    );
+  });
+
+  it("throws when conversations.json contains a non-array JSON value", async () => {
+    const zip = new JSZip();
+    zip.file("conversations.json", JSON.stringify({ not: "array" }));
+
+    const file = await zipToFile(zip);
+
+    await expect(extractConversations(file)).rejects.toThrow(
+      "conversations.json must contain a JSON array",
+    );
+  });
+
+  it("throws when the file is zero bytes", async () => {
+    const emptyBlob = new Blob([], { type: "application/zip" });
+    const file = new File([emptyBlob], "empty.zip", { type: "application/zip" });
+
+    await expect(extractConversations(file)).rejects.toThrow();
+  });
 });

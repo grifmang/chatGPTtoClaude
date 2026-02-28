@@ -53,6 +53,24 @@ describe("getAccessToken", () => {
 
     await expect(getAccessToken()).rejects.toThrow(/session expired or invalid/i);
   });
+
+  it("throws when accessToken is an empty string", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      jsonResponse({ accessToken: "" }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(getAccessToken()).rejects.toThrow(/session expired or invalid/i);
+  });
+
+  it("throws when accessToken is a non-string value", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      jsonResponse({ accessToken: 123 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(getAccessToken()).rejects.toThrow(/session expired or invalid/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -160,6 +178,26 @@ describe("fetchConversationList", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
+  it("returns empty array immediately when total is 0", async () => {
+    const page = {
+      items: [],
+      total: 0,
+      offset: 0,
+      limit: 20,
+    };
+
+    const mockFetch = vi.fn().mockResolvedValueOnce(jsonResponse(page));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const onProgress = vi.fn();
+    const items = await fetchConversationList("tok_abc", 20, onProgress);
+
+    expect(items).toHaveLength(0);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    // onProgress should still be called with (0, 0)
+    expect(onProgress).toHaveBeenCalledWith(0, 0);
+  });
+
   it("stops when server returns empty items array", async () => {
     const page1 = {
       items: [{ id: "conv-1", title: "A", create_time: 1 }],
@@ -228,5 +266,25 @@ describe("fetchConversation", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     await expect(fetchConversation("conv-1", "tok_abc")).rejects.toThrow();
+  });
+
+  it("throws when server returns non-JSON response (e.g. HTML error page)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.reject(new SyntaxError("Unexpected token '<'")),
+    } as unknown as Response);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(fetchConversation("conv-1", "tok_abc")).rejects.toThrow(SyntaxError);
+  });
+
+  it("propagates network errors when fetch rejects", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    const mockFetch = vi.fn().mockRejectedValue(networkError);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(fetchConversation("conv-1", "tok_abc")).rejects.toThrow(TypeError);
+    await expect(fetchConversation("conv-1", "tok_abc")).rejects.toThrow("Failed to fetch");
   });
 });

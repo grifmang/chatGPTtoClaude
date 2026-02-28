@@ -108,4 +108,46 @@ describe("createOverlay", () => {
     expect(el.style.position).toBe("fixed");
     expect(el.style.zIndex).toBe("99999");
   });
+
+  // -------------------------------------------------------------------------
+  // Security: XSS prevention
+  // -------------------------------------------------------------------------
+
+  it("does not render HTML in setProgress status text (XSS prevention)", () => {
+    overlay = createOverlay();
+    const xssPayload = '<img src=x onerror=alert(1)>';
+    overlay.setProgress(xssPayload);
+
+    const el = document.getElementById("cgpt-export-overlay")!;
+
+    // The raw XSS string should appear as visible text content
+    expect(el.textContent).toContain(xssPayload);
+
+    // No <img> element should have been injected into the DOM
+    expect(el.querySelector("img")).toBeNull();
+
+    // The status <p> element should not contain any HTML children
+    const statusP = el.querySelector("p")!;
+    expect(statusP.children).toHaveLength(0);
+    expect(statusP.textContent).toBe(xssPayload);
+  });
+
+  it("does not render HTML in setError error text (XSS prevention)", () => {
+    overlay = createOverlay();
+    const xssPayload = '<img src=x onerror=alert(1)>';
+    overlay.setError(xssPayload);
+
+    const el = document.getElementById("cgpt-export-overlay")!;
+
+    // The raw XSS string should appear as visible text content
+    expect(el.textContent).toContain(xssPayload);
+
+    // No <img> element should have been injected into the DOM
+    expect(el.querySelector("img")).toBeNull();
+
+    // The status <p> element should not contain any HTML children
+    const statusP = el.querySelector("p")!;
+    expect(statusP.children).toHaveLength(0);
+    expect(statusP.textContent).toBe(xssPayload);
+  });
 });

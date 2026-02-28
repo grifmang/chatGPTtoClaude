@@ -151,4 +151,43 @@ describe("exportToMarkdown", () => {
     // Sections should be separated by a blank line
     expect(result).toContain("- Pref item\n\n# Technical Profile");
   });
+
+  it("renders memory text with markdown syntax as-is with bullet prefix", () => {
+    const candidates: MemoryCandidate[] = [
+      makeCandidate({ id: "1", text: "# I prefer React", category: "preference" }),
+    ];
+
+    const result = exportToMarkdown(candidates);
+
+    // The text should appear literally with the bullet prefix, not interpreted as a heading
+    expect(result).toContain("- # I prefer React");
+  });
+
+  it("preserves multi-line memory text", () => {
+    const candidates: MemoryCandidate[] = [
+      makeCandidate({
+        id: "1",
+        text: "First line\nSecond line\nThird line",
+        category: "preference",
+      }),
+    ];
+
+    const result = exportToMarkdown(candidates);
+
+    expect(result).toContain("- First line\nSecond line\nThird line");
+  });
+
+  it("preserves unicode characters including emojis and accented chars", () => {
+    const candidates: MemoryCandidate[] = [
+      makeCandidate({ id: "1", text: "Loves caf\u00e9s and \ud83c\udf55 pizza", category: "preference" }),
+      makeCandidate({ id: "2", text: "Speaks fran\u00e7ais and espa\u00f1ol", category: "identity" }),
+      makeCandidate({ id: "3", text: "\ud83d\ude80 Rocket enthusiast \ud83c\udf1f", category: "theme" }),
+    ];
+
+    const result = exportToMarkdown(candidates);
+
+    expect(result).toContain("- Loves caf\u00e9s and \ud83c\udf55 pizza");
+    expect(result).toContain("- Speaks fran\u00e7ais and espa\u00f1ol");
+    expect(result).toContain("- \ud83d\ude80 Rocket enthusiast \ud83c\udf1f");
+  });
 });

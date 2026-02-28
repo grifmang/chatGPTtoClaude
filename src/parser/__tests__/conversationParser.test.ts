@@ -382,4 +382,148 @@ describe("parseConversation", () => {
 
     expect(result.model).toBeNull();
   });
+
+  it("returns empty messages when current_node points to non-existent key", () => {
+    const mapping: Record<string, ChatGPTMappingNode> = {
+      root: makeNode("root", null, null, ["user-1"]),
+      "user-1": makeNode(
+        "user-1",
+        makeMessage(
+          "user-1",
+          makeAuthor("user"),
+          { content_type: "text", parts: ["Hello"] },
+          1700000010,
+        ),
+        "root",
+        [],
+      ),
+    };
+
+    const conv = makeConversation(mapping, "does-not-exist");
+    const result = parseConversation(conv);
+
+    expect(result.messages).toEqual([]);
+  });
+
+  it("returns partial messages when parent points to non-existent node", () => {
+    // asst-1 -> user-1 -> missing-parent (chain breaks)
+    const mapping: Record<string, ChatGPTMappingNode> = {
+      "user-1": makeNode(
+        "user-1",
+        makeMessage(
+          "user-1",
+          makeAuthor("user"),
+          { content_type: "text", parts: ["Hello"] },
+          1700000010,
+        ),
+        "missing-parent",
+        ["asst-1"],
+      ),
+      "asst-1": makeNode(
+        "asst-1",
+        makeMessage(
+          "asst-1",
+          makeAuthor("assistant"),
+          { content_type: "text", parts: ["Hi there!"] },
+          1700000020,
+        ),
+        "user-1",
+        [],
+      ),
+    };
+
+    const conv = makeConversation(mapping, "asst-1");
+    const result = parseConversation(conv);
+
+    // Walk goes: asst-1 -> user-1 -> missing-parent (break)
+    // Reversed: user-1, asst-1
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[0].role).toBe("user");
+    expect(result.messages[1].role).toBe("assistant");
+  });
+
+  it("skips message when all parts are null producing empty string", () => {
+    const mapping: Record<string, ChatGPTMappingNode> = {
+      root: makeNode("root", null, null, ["user-1"]),
+      "user-1": makeNode(
+        "user-1",
+        makeMessage(
+          "user-1",
+          makeAuthor("user"),
+          { content_type: "text", parts: [null, null] },
+          1700000010,
+        ),
+        "root",
+        [],
+      ),
+    };
+
+    const conv = makeConversation(mapping, "user-1");
+    const result = parseConversation(conv);
+
+    // All null parts produce empty string after filtering, so message is skipped
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it("skips messages with whitespace-only text", () => {
+    const mapping: Record<string, ChatGPTMappingNode> = {
+      root: makeNode("root", null, null, ["user-1"]),
+      "user-1": makeNode(
+        "user-1",
+        makeMessage(
+          "user-1",
+          makeAuthor("user"),
+          { content_type: "text", parts: ["   \n  "] },
+          1700000010,
+        ),
+        "root",
+        ["asst-1"],
+      ),
+      "asst-1": makeNode(
+        "asst-1",
+        makeMessage(
+          "asst-1",
+          makeAuthor("assistant"),
+          { content_type: "text", parts: ["Real response"] },
+          1700000020,
+        ),
+        "user-1",
+        [],
+      ),
+    };
+
+    const conv = makeConversation(mapping, "asst-1");
+    const result = parseConversation(conv);
+
+    // Whitespace-only text trims to "", so the user message is skipped
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe("assistant");
+    expect(result.messages[0].text).toBe("Real response");
+  });
+
+  it("preserves create_time of 0 (not treated as null)", () => {
+    const mapping: Record<string, ChatGPTMappingNode> = {
+      root: makeNode("root", null, null, ["user-1"]),
+      "user-1": makeNode(
+        "user-1",
+        makeMessage(
+          "user-1",
+          makeAuthor("user"),
+          { content_type: "text", parts: ["Epoch message"] },
+          0,
+        ),
+        "root",
+        [],
+      ),
+    };
+
+    const conv = makeConversation(mapping, "user-1");
+    const result = parseConversation(conv);
+
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].timestamp).toBe(0);
+    // Ensure it's exactly 0 and not null or undefined
+    expect(result.messages[0].timestamp).not.toBeNull();
+    expect(result.messages[0].timestamp).not.toBeUndefined();
+  });
 });

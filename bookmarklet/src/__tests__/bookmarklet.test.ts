@@ -306,4 +306,140 @@ describe("bookmarklet run()", () => {
       "Please log in to ChatGPT",
     );
   });
+
+  // -------------------------------------------------------------------------
+  // 7. waitForReady timeout
+  // -------------------------------------------------------------------------
+
+  it("shows timeout error when app does not send ready message within 30 seconds", async () => {
+    setHostname("chatgpt.com");
+
+    vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
+    vi.mocked(fetchConversationList).mockResolvedValue([]);
+
+    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
+    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
+
+    // Do NOT simulate a "ready" message — let it time out
+
+    const promise = run();
+    // Advance past the 30-second timeout
+    await vi.advanceTimersByTimeAsync(30_000);
+    await promise;
+
+    expect(mockOverlay.setError).toHaveBeenCalledWith(
+      "Timed out waiting for the app to respond.",
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // 8. Zero conversations returned
+  // -------------------------------------------------------------------------
+
+  it("opens app and sends empty data when zero conversations are returned", async () => {
+    setHostname("chatgpt.com");
+
+    vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
+    vi.mocked(fetchConversationList).mockResolvedValue([]);
+
+    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
+    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
+
+    const originalAddEventListener = window.addEventListener.bind(window);
+    vi.spyOn(window, "addEventListener").mockImplementation(
+      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+        if (type === "message") {
+          setTimeout(() => {
+            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
+            fn(new MessageEvent("message", {
+              data: { type: "ready" },
+              source: mockAppWindow,
+              origin: "https://chatgpt-to-claude.vercel.app",
+            }));
+          }, 10);
+        }
+        return originalAddEventListener(type, handler, options);
+      },
+    );
+
+    const promise = run();
+    await vi.advanceTimersByTimeAsync(15000);
+    await promise;
+
+    // Should NOT have fetched any individual conversations
+    expect(fetchConversation).not.toHaveBeenCalled();
+
+    // Should still open the app and send empty conversations array
+    expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
+      { type: "conversations", data: [] },
+      "https://chatgpt-to-claude.vercel.app",
+    );
+
+    expect(mockOverlay.setDone).toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // 9. Cancellation during fetch loop
+  // -------------------------------------------------------------------------
+
+  it("stops fetching conversations when cancelled mid-loop", async () => {
+    setHostname("chatgpt.com");
+
+    const mockConvList = [
+      { id: "conv-1", title: "First" },
+      { id: "conv-2", title: "Second" },
+      { id: "conv-3", title: "Third" },
+    ];
+
+    vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
+    vi.mocked(fetchConversationList).mockResolvedValue(mockConvList);
+
+    // Capture the onCancel callback passed to createOverlay
+    let cancelFn: (() => void) | undefined;
+    createOverlayMock.mockImplementation((onCancel?: () => void) => {
+      cancelFn = onCancel;
+      return mockOverlay;
+    });
+
+    // When the first conversation is fetched, trigger cancellation
+    vi.mocked(fetchConversation).mockImplementation(async (id: string) => {
+      if (id === "conv-1") {
+        // Simulate user pressing Cancel after first fetch completes
+        cancelFn?.();
+        return { id: "conv-1", mapping: {} };
+      }
+      return { id, mapping: {} };
+    });
+
+    // After cancellation, the code still proceeds to window.open and
+    // waitForReady, so we need to provide a mock window and ready message.
+    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
+    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
+
+    const originalAddEventListener = window.addEventListener.bind(window);
+    vi.spyOn(window, "addEventListener").mockImplementation(
+      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+        if (type === "message") {
+          setTimeout(() => {
+            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
+            fn(new MessageEvent("message", {
+              data: { type: "ready" },
+              source: mockAppWindow,
+              origin: "https://chatgpt-to-claude.vercel.app",
+            }));
+          }, 10);
+        }
+        return originalAddEventListener(type, handler, options);
+      },
+    );
+
+    const promise = run();
+    await vi.advanceTimersByTimeAsync(15000);
+    await promise;
+
+    // The first conversation should have been fetched, but the loop should
+    // have stopped before fetching all three
+    expect(fetchConversation).toHaveBeenCalledWith("conv-1", "tok_abc");
+    expect(fetchConversation).not.toHaveBeenCalledWith("conv-3", "tok_abc");
+  });
 });
