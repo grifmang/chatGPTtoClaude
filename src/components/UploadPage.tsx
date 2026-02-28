@@ -85,6 +85,22 @@ export function UploadPage({
               I already have my ZIP file
             </button>
           </div>
+          <div className="bookmarklet-section">
+            <p className="bookmarklet-divider">or try the fast way</p>
+            <p className="bookmarklet-instructions">
+              Drag this to your bookmark bar, then click it while on chatgpt.com:
+            </p>
+            <a
+              href="javascript:void(0)"
+              className="bookmarklet-link"
+              onClick={(e) => {
+                e.preventDefault();
+                alert('Drag this link to your bookmark bar, then click it while on chatgpt.com.');
+              }}
+            >
+              Export ChatGPT Data
+            </a>
+          </div>
         </div>
       )}
 

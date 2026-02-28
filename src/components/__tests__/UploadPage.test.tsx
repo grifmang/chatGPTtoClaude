@@ -69,4 +69,16 @@ describe("UploadPage - Wizard", () => {
     render(<UploadPage {...defaultProps} error="Bad file" />);
     expect(screen.getByText("Bad file")).toBeInTheDocument();
   });
+
+  it("shows bookmarklet install link on step 1", () => {
+    render(<UploadPage {...defaultProps} />);
+    const bookmarkletLink = screen.getByText(/export chatgpt data/i);
+    expect(bookmarkletLink).toBeInTheDocument();
+    expect(bookmarkletLink.tagName).toBe("A");
+  });
+
+  it("shows bookmarklet instructions text", () => {
+    render(<UploadPage {...defaultProps} />);
+    expect(screen.getByText(/drag this to your bookmark bar/i)).toBeInTheDocument();
+  });
 });
