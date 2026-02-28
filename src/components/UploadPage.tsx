@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Stepper } from "./Stepper";
 import "./UploadPage.css";
 
 const STEPS = ["Get your data", "Download export", "Upload & extract"];
+const BOOKMARKLET_CODE = "javascript:void(document.title)";
 
 type UploadPageProps = {
   onFileSelected: (file: File, apiKey?: string) => void;
@@ -22,6 +23,14 @@ export function UploadPage({
   const [apiKeyEnabled, setApiKeyEnabled] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+
+  // Set bookmarklet href via DOM ref to bypass React's javascript: URL blocking
+  useEffect(() => {
+    if (bookmarkletRef.current) {
+      bookmarkletRef.current.href = BOOKMARKLET_CODE;
+    }
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -91,7 +100,8 @@ export function UploadPage({
               Drag this to your bookmark bar, then click it while on chatgpt.com:
             </p>
             <a
-              href="javascript:void(0)"
+              ref={bookmarkletRef}
+              href="#bookmarklet"
               className="bookmarklet-link"
               onClick={(e) => {
                 e.preventDefault();
