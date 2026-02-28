@@ -16,6 +16,7 @@ function delay(ms: number): Promise<void> {
  * Resolves when the app posts `{ type: "ready" }`, rejects after 30s.
  */
 function waitForReady(appWindow: Window): Promise<void> {
+  const expectedOrigin = new URL(APP_URL).origin;
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       window.removeEventListener("message", handler);
@@ -23,7 +24,11 @@ function waitForReady(appWindow: Window): Promise<void> {
     }, 30_000);
 
     function handler(event: MessageEvent) {
-      if (event.data?.type === "ready") {
+      if (
+        event.source === appWindow &&
+        event.origin === expectedOrigin &&
+        event.data?.type === "ready"
+      ) {
         clearTimeout(timeout);
         window.removeEventListener("message", handler);
         resolve();
@@ -38,7 +43,11 @@ function waitForReady(appWindow: Window): Promise<void> {
  * Main bookmarklet flow. Exported for testing.
  */
 export async function run(): Promise<void> {
-  const overlay = createOverlay();
+  let cancelled = false;
+  const overlay = createOverlay(() => {
+    cancelled = true;
+    overlay.destroy();
+  });
 
   try {
     // 1. Check hostname
@@ -61,6 +70,7 @@ export async function run(): Promise<void> {
     // 4. Fetch each conversation with delay
     const conversations: unknown[] = [];
     for (let i = 0; i < convList.length; i++) {
+      if (cancelled) break;
       overlay.setProgress(`Fetching conversation ${i + 1} of ${convList.length}...`);
       try {
         const conv = await fetchConversation(convList[i].id, token);
@@ -88,7 +98,7 @@ export async function run(): Promise<void> {
     await waitForReady(appWindow);
 
     // 7. Send conversations to the app
-    appWindow.postMessage({ type: "conversations", data: conversations }, "*");
+    appWindow.postMessage({ type: "conversations", data: conversations }, APP_URL);
 
     // 8. Done!
     overlay.setDone();

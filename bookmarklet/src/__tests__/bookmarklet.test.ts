@@ -123,6 +123,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
+              origin: "https://chatgpt-to-claude.vercel.app",
             }));
           }, 10);
         }
@@ -154,7 +155,7 @@ describe("bookmarklet run()", () => {
     // Verify postMessage was called with conversations data
     expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
       { type: "conversations", data: expect.any(Array) },
-      "*",
+      "https://chatgpt-to-claude.vercel.app",
     );
 
     // Verify done state
@@ -183,6 +184,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
+              origin: "https://chatgpt-to-claude.vercel.app",
             }));
           }, 10);
         }
@@ -256,6 +258,7 @@ describe("bookmarklet run()", () => {
             fn(new MessageEvent("message", {
               data: { type: "ready" },
               source: mockAppWindow,
+              origin: "https://chatgpt-to-claude.vercel.app",
             }));
           }, 10);
         }
@@ -282,7 +285,7 @@ describe("bookmarklet run()", () => {
           expect.objectContaining({ id: "conv-3" }),
         ]),
       },
-      "*",
+      "https://chatgpt-to-claude.vercel.app",
     );
   });
 
