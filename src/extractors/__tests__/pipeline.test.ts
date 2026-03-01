@@ -30,7 +30,7 @@ describe("extractAllMemories", () => {
     const convs = [
       // Preference trigger
       makeConversation("c1", "Preferences", [
-        "I prefer functional programming.",
+        "I prefer functional programming over OOP style.",
       ]),
       // Technical trigger
       makeConversation("c2", "Stack", [
@@ -70,7 +70,7 @@ describe("extractAllMemories", () => {
   it("returns results from all 5 categories", () => {
     const convs = [
       makeConversation("c1", "Chat", [
-        "I prefer dark mode. I use Python. I'm building an app. I'm a developer.",
+        "I prefer dark mode in my editors. I use Python. I'm building an app. I'm a developer.",
       ]),
       // Theme needs 3+ conversations
       makeConversation("c2", "Chat", ["authentication flow"]),
@@ -89,7 +89,7 @@ describe("extractAllMemories", () => {
   it("generates unique IDs across all extractors", () => {
     const convs = [
       makeConversation("c1", "Chat", [
-        "I prefer TypeScript. I use React. I'm building something. I'm a developer.",
+        "I prefer TypeScript over plain JavaScript. I use React. I'm building something. I'm a developer.",
       ]),
       makeConversation("c2", "Chat", ["deployment pipeline"]),
       makeConversation("c3", "Chat", ["deployment process"]),
@@ -107,7 +107,7 @@ describe("extractAllMemories", () => {
   it("all candidates have pending status", () => {
     const convs = [
       makeConversation("c1", "Chat", [
-        "I prefer dark mode.",
+        "I prefer dark mode in my editors.",
       ]),
     ];
 

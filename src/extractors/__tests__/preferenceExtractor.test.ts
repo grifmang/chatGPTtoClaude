@@ -107,12 +107,12 @@ describe("extractPreferences", () => {
 
   it("extracts 'I like' as medium confidence", () => {
     const conv = makeConversation([
-      "I like functional programming. It feels cleaner.",
+      "I like functional programming a lot. It feels cleaner.",
     ]);
     const results = extractPreferences([conv]);
 
     expect(results).toHaveLength(1);
-    expect(results[0].text).toBe("I like functional programming.");
+    expect(results[0].text).toBe("I like functional programming a lot.");
     expect(results[0].confidence).toBe("medium");
   });
 
@@ -148,7 +148,7 @@ describe("extractPreferences", () => {
 
   it("only extracts one match per message", () => {
     const conv = makeConversation([
-      "I prefer dark mode. I always use TypeScript.",
+      "I prefer dark mode in editors. I always use TypeScript for projects.",
     ]);
     const results = extractPreferences([conv]);
 
@@ -158,8 +158,8 @@ describe("extractPreferences", () => {
 
   it("generates unique IDs", () => {
     const conv = makeConversation([
-      "I prefer dark mode.",
-      "I always use TypeScript.",
+      "I prefer dark mode in my editors.",
+      "I always use TypeScript for projects.",
     ]);
     const results = extractPreferences([conv]);
 
@@ -169,7 +169,7 @@ describe("extractPreferences", () => {
   });
 
   it("uses conversation createdAt as sourceTimestamp", () => {
-    const conv = makeConversation(["I prefer dark mode."], {
+    const conv = makeConversation(["I prefer dark mode in editors."], {
       createdAt: 1700000099,
     });
     const results = extractPreferences([conv]);
@@ -202,6 +202,37 @@ describe("extractPreferences", () => {
     const results = extractPreferences([conv]);
 
     expect(results).toHaveLength(1);
+    expect(results[0].confidence).toBe("high");
+  });
+
+  // ─── Noise Filters ───────────────────────────────────────────────────────────
+
+  it("filters out sentences shorter than 5 words", () => {
+    const conv = makeConversation(["I prefer it."]);
+    const results = extractPreferences([conv]);
+
+    expect(results).toHaveLength(0);
+  });
+
+  it("filters out questions", () => {
+    const conv = makeConversation([
+      "Do I prefer dark mode or light mode?",
+    ]);
+    const results = extractPreferences([conv]);
+
+    expect(results).toHaveLength(0);
+  });
+
+  it("still extracts valid preference sentences", () => {
+    const conv = makeConversation([
+      "I prefer using dark mode in all my editors.",
+    ]);
+    const results = extractPreferences([conv]);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].text).toBe(
+      "I prefer using dark mode in all my editors.",
+    );
     expect(results[0].confidence).toBe("high");
   });
 });

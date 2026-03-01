@@ -68,6 +68,13 @@ export function extractPreferences(
         const match = pattern.regex.exec(msg.text);
         if (match) {
           const sentence = extractSentence(msg.text, match.index);
+
+          // Skip sentences shorter than 5 words
+          if (sentence.split(/\s+/).length < 5) break;
+
+          // Skip questions
+          if (sentence.trimEnd().endsWith("?")) break;
+
           candidates.push({
             id: `pref-${counter++}`,
             text: sentence,
