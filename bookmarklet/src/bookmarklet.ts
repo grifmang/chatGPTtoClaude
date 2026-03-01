@@ -123,23 +123,27 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 3. Authenticate
+    // 3. Start listening for the app's "ready" signal RIGHT AWAY so we
+    //    don't miss it while authenticating / fetching the conversation list.
+    const readyPromise = waitForReady(appWindow);
+
+    // 4. Authenticate
     overlay.setProgress("Authenticating...");
     const token = await getAccessToken();
 
-    // 4. Fetch conversation list
+    // 5. Fetch conversation list
     overlay.setProgress("Fetching conversation list...");
     const convList = await fetchConversationList(token, 100, (fetched, total) => {
       overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
     });
 
-    // 5. Fetch all conversations concurrently + wait for app ready in parallel
+    // 6. Fetch all conversations concurrently + wait for app ready in parallel
     const ids = convList.map((c) => c.id);
     const [conversations] = await Promise.all([
       fetchAllConcurrent(ids, token, (done, total) => {
         overlay.setProgress(`Fetching conversations (${done}/${total})...`);
       }, () => cancelled),
-      waitForReady(appWindow),
+      readyPromise,
     ]);
 
     if (cancelled) return;
