@@ -17,7 +17,7 @@ describe("UploadPage - Wizard", () => {
 
   it("starts on step 1 with ChatGPT export instructions", () => {
     render(<UploadPage {...defaultProps} />);
-    expect(screen.getByText(/request your data export/i)).toBeInTheDocument();
+    expect(screen.getByText(/export via chatgpt settings/i)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /open chatgpt data controls/i })
     ).toHaveAttribute("href", "https://chatgpt.com/#settings/DataControls");
@@ -49,7 +49,7 @@ describe("UploadPage - Wizard", () => {
     await userEvent.click(screen.getByRole("button", { name: /next/i }));
     expect(screen.getByText(/check your email/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /back/i }));
-    expect(screen.getByText(/request your data export/i)).toBeInTheDocument();
+    expect(screen.getByText(/export via chatgpt settings/i)).toBeInTheDocument();
   });
 
   it("navigates back from step 3 to step 2", async () => {
@@ -95,7 +95,7 @@ describe("UploadPage - Wizard", () => {
 
   it("shows bookmarklet instructions text", () => {
     render(<UploadPage {...defaultProps} />);
-    expect(screen.getByText(/drag this to your bookmark bar/i)).toBeInTheDocument();
+    expect(screen.getByText(/drag me to your bookmark bar/i)).toBeInTheDocument();
   });
 });
 

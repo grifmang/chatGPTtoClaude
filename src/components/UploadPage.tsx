@@ -70,47 +70,69 @@ export function UploadPage({
       {error && <div className="upload-error">{error}</div>}
 
       {step === 0 && (
-        <div className="wizard-step">
-          <h2>Request your data export from ChatGPT</h2>
-          <p className="wizard-text">
-            Click the button below to open ChatGPT's Data Controls settings,
-            then click "Export data" and confirm.
-          </p>
-          <a
-            href="https://chatgpt.com/#settings/DataControls"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary"
-          >
-            Open ChatGPT Data Controls
-          </a>
-          <div className="wizard-nav">
-            <button className="btn" onClick={() => setStep(1)}>
-              Next
-            </button>
-            <button
-              className="btn btn-link"
-              onClick={() => setStep(2)}
-            >
-              I already have my ZIP file
-            </button>
-          </div>
-          <div className="bookmarklet-section">
-            <p className="bookmarklet-divider">or try the fast way</p>
-            <p className="bookmarklet-instructions">
-              Drag this to your bookmark bar, then click it while on chatgpt.com:
-            </p>
-            <a
-              ref={bookmarkletRef}
-              href="#bookmarklet"
-              className="bookmarklet-link"
-              onClick={(e) => {
-                e.preventDefault();
-                alert('Drag this link to your bookmark bar, then click it while on chatgpt.com.');
-              }}
-            >
-              Export ChatGPT Data
-            </a>
+        <div className="wizard-step step-zero">
+          <div className="step-zero-columns">
+            <div className="step-zero-col">
+              <div className="step-zero-label">Manual export</div>
+              <h2>Export via ChatGPT settings</h2>
+              <p className="wizard-text">
+                Request a data export from ChatGPT, wait for the email, then
+                upload the ZIP file here.
+              </p>
+              <a
+                href="https://chatgpt.com/#settings/DataControls"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+              >
+                Open ChatGPT Data Controls
+              </a>
+              <div className="wizard-nav">
+                <button className="btn btn-lg" onClick={() => setStep(1)}>
+                  Next
+                </button>
+                <button
+                  className="btn btn-link"
+                  onClick={() => setStep(2)}
+                >
+                  I already have my ZIP file
+                </button>
+              </div>
+            </div>
+
+            <div className="step-zero-divider">
+              <span className="step-zero-divider-text">or</span>
+            </div>
+
+            <div className="step-zero-col bookmarklet-col">
+              <div className="step-zero-label step-zero-label-fast">
+                Instant export
+              </div>
+              <h2>Export via bookmarklet</h2>
+              <p className="wizard-text">
+                Drag this button to your bookmark bar, then click it while on
+                chatgpt.com. No waiting for emails.
+              </p>
+              <div className="bookmarklet-drag-area">
+                <div className="bookmarklet-arrow" aria-hidden="true" />
+                <a
+                  ref={bookmarkletRef}
+                  href="#bookmarklet"
+                  className="bookmarklet-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert(
+                      "Drag this link to your bookmark bar, then click it while on chatgpt.com.",
+                    );
+                  }}
+                >
+                  Export ChatGPT Data
+                </a>
+                <p className="bookmarklet-hint">
+                  Drag me to your bookmark bar
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
