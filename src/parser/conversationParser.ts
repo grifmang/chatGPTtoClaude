@@ -26,6 +26,9 @@ function flattenContent(content: ChatGPTContent): string {
 
     case "execution_output":
       return content.text;
+
+    default:
+      return "";
   }
 }
 
@@ -66,18 +69,18 @@ export function parseConversation(
   const messages: ParsedMessage[] = [];
 
   for (const node of path) {
-    // Skip sentinel nodes with null messages
-    if (node.message === null) continue;
+    // Skip sentinel nodes with null/missing messages
+    if (!node.message) continue;
 
     const { author, content, create_time } = node.message;
 
     // Keep only user and assistant roles
-    if (author.role !== "user" && author.role !== "assistant") continue;
+    if (!author || (author.role !== "user" && author.role !== "assistant")) continue;
 
+    // Skip messages with missing or unrecognised content
+    if (!content) continue;
     const text = flattenContent(content);
-
-    // Skip messages with empty text after flattening
-    if (text.trim() === "") continue;
+    if (!text || text.trim() === "") continue;
 
     messages.push({
       role: author.role,
