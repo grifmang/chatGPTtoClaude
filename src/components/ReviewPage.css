@@ -84,6 +84,20 @@
   font-size: 0.9rem;
 }
 
+.review-search-input {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: inherit;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 150px;
+}
+.review-search-input::placeholder {
+  color: #666;
+}
+
 /* ─── Bulk confidence bar ─────────────────────────────────────────────────── */
 
 .bulk-confidence-bar {

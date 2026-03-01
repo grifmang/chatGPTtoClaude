@@ -420,6 +420,22 @@ describe("ReviewPage - progress bar", () => {
   });
 });
 
+// ─── Search filter ──────────────────────────────────────────────────────────
+
+describe("ReviewPage - search filter", () => {
+  it("filters candidates by search text", () => {
+    const candidates = [
+      makeCandidate({ id: "1", text: "I prefer dark mode", status: "pending" }),
+      makeCandidate({ id: "2", text: "I use TypeScript", status: "pending" }),
+    ];
+    render(<ReviewPage candidates={candidates} onUpdateCandidate={vi.fn()} onExport={vi.fn()} />);
+    const input = screen.getByPlaceholderText("Search memories...");
+    fireEvent.change(input, { target: { value: "dark" } });
+    expect(screen.getByText("I prefer dark mode")).toBeInTheDocument();
+    expect(screen.queryByText("I use TypeScript")).not.toBeInTheDocument();
+  });
+});
+
 // ─── Filter gap tests ───────────────────────────────────────────────────────
 
 describe("ReviewPage - Filter gap tests", () => {

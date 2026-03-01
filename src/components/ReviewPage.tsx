@@ -39,6 +39,7 @@ export function ReviewPage({
 }: ReviewPageProps) {
   const [categoryFilter, setCategoryFilter] = useState<"" | MemoryCategory>("");
   const [confidenceFilter, setConfidenceFilter] = useState<"" | Confidence>("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [showAll, setShowAll] = useState(false);
 
@@ -54,9 +55,13 @@ export function ReviewPage({
         if (!showAll && c.status !== "pending") return false;
         if (categoryFilter && c.category !== categoryFilter) return false;
         if (confidenceFilter && c.confidence !== confidenceFilter) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (!c.text.toLowerCase().includes(q) && !c.sourceTitle.toLowerCase().includes(q)) return false;
+        }
         return true;
       }),
-    [candidates, categoryFilter, confidenceFilter, showAll],
+    [candidates, categoryFilter, confidenceFilter, searchQuery, showAll],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
@@ -152,6 +157,14 @@ export function ReviewPage({
 
       <div className="review-toolbar">
         <div className="review-filters">
+          <input
+            type="text"
+            placeholder="Search memories..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+            className="review-search-input"
+          />
+
           <select
             value={categoryFilter}
             onChange={(e) => {
