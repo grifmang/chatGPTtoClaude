@@ -113,17 +113,8 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 2. Authenticate
-    overlay.setProgress("Authenticating...");
-    const token = await getAccessToken();
-
-    // 3. Fetch conversation list
-    overlay.setProgress("Fetching conversation list...");
-    const convList = await fetchConversationList(token, 100, (fetched, total) => {
-      overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
-    });
-
-    // 4. Open the web app early so it loads while we fetch conversations
+    // 2. Open the web app immediately while we still have the user-gesture
+    //    context — browsers block window.open after async work.
     const appWindow = window.open(APP_URL, "_blank");
     if (!appWindow) {
       overlay.setError(
@@ -131,6 +122,16 @@ export async function run(): Promise<void> {
       );
       return;
     }
+
+    // 3. Authenticate
+    overlay.setProgress("Authenticating...");
+    const token = await getAccessToken();
+
+    // 4. Fetch conversation list
+    overlay.setProgress("Fetching conversation list...");
+    const convList = await fetchConversationList(token, 100, (fetched, total) => {
+      overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
+    });
 
     // 5. Fetch all conversations concurrently + wait for app ready in parallel
     const ids = convList.map((c) => c.id);
