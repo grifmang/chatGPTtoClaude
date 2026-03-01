@@ -114,7 +114,6 @@ export function UploadPage({
                 chatgpt.com. No waiting for emails.
               </p>
               <div className="bookmarklet-drag-area">
-                <div className="bookmarklet-arrow" aria-hidden="true" />
                 <a
                   ref={bookmarkletRef}
                   href="#bookmarklet"
