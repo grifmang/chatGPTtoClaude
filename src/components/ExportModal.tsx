@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { MemoryCandidate } from "../types";
 import { exportToClaudeMd } from "../export/claudeMdExport";
 
@@ -24,7 +24,7 @@ export function ExportModal({ markdown, candidates, onClose }: ExportModalProps)
   }, [copied]);
 
   const fullMessage = CLAUDE_MESSAGE_PREFIX + markdown;
-  const claudeMdContent = exportToClaudeMd(candidates);
+  const claudeMdContent = useMemo(() => exportToClaudeMd(candidates), [candidates]);
 
   const handleCopyMessage = async () => {
     try {

@@ -2,6 +2,34 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UploadPage } from "../UploadPage";
 
+describe("UploadPage - Hero", () => {
+  const defaultProps = {
+    onFileSelected: vi.fn(),
+    isProcessing: false,
+  };
+
+  it("renders hero section with headline", () => {
+    render(<UploadPage {...defaultProps} />);
+    expect(screen.getByText("Migrate your ChatGPT memories to Claude")).toBeInTheDocument();
+  });
+
+  it("renders hero feature pills", () => {
+    render(<UploadPage {...defaultProps} />);
+    expect(screen.getByText("800+ conversations")).toBeInTheDocument();
+    expect(screen.getByText("One-click export")).toBeInTheDocument();
+    expect(screen.getByText("Open source")).toBeInTheDocument();
+  });
+
+  it("scrolls to wizard on Get Started click", () => {
+    render(<UploadPage {...defaultProps} />);
+    const wizardEl = document.getElementById("wizard")!;
+    const scrollSpy = vi.fn();
+    wizardEl.scrollIntoView = scrollSpy;
+    fireEvent.click(screen.getByText("Get started"));
+    expect(scrollSpy).toHaveBeenCalled();
+  });
+});
+
 describe("UploadPage - Wizard", () => {
   const defaultProps = {
     onFileSelected: vi.fn(),

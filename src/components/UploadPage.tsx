@@ -60,14 +60,32 @@ export function UploadPage({
 
   return (
     <div className="upload-page">
-      <h1 className="upload-title">ChatGPT to Claude Memory</h1>
-      <p className="upload-subtitle">
-        Migrate your ChatGPT memories to Claude in three easy steps.
-      </p>
+      <section className="hero">
+        <h1 className="hero-title">Migrate your ChatGPT memories to Claude</h1>
+        <p className="hero-subtitle">100% in your browser. No sign-up. No data leaves your machine.</p>
+        <div className="hero-pills">
+          <span className="hero-pill">800+ conversations</span>
+          <span className="hero-pill">One-click export</span>
+          <span className="hero-pill">Open source</span>
+        </div>
+        <div className="hero-demo">
+          <div className="demo-step demo-step-1">Click bookmarklet</div>
+          <div className="demo-arrow">&rarr;</div>
+          <div className="demo-step demo-step-2">Review memories</div>
+          <div className="demo-arrow">&rarr;</div>
+          <div className="demo-step demo-step-3">Export to Claude</div>
+        </div>
+        <button className="btn btn-primary hero-cta" onClick={() => {
+          document.getElementById("wizard")?.scrollIntoView({ behavior: "smooth" });
+        }}>
+          Get started
+        </button>
+      </section>
 
-      <Stepper steps={STEPS} currentStep={step} onStepClick={setStep} />
+      <div id="wizard">
+        <Stepper steps={STEPS} currentStep={step} onStepClick={setStep} />
 
-      {error && <div className="upload-error">{error}</div>}
+        {error && <div className="upload-error">{error}</div>}
 
       {step === 0 && (
         <div className="wizard-step step-zero">
@@ -232,6 +250,7 @@ export function UploadPage({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
