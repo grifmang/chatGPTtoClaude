@@ -147,7 +147,7 @@ function App() {
       )}
 
       {state === "export" && (
-        <ExportModal markdown={exportMarkdown} onClose={handleCloseModal} />
+        <ExportModal markdown={exportMarkdown} candidates={candidates} onClose={handleCloseModal} />
       )}
     </div>
   );
