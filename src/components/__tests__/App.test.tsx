@@ -33,7 +33,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      screen.getByText("Migrate your ChatGPT memories to Claude"),
+      screen.getByText("ChatGPT to Claude Memory"),
     ).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      screen.getByText("Migrate your ChatGPT memories to Claude"),
+      screen.getByText("ChatGPT to Claude Memory"),
     ).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("App integration – state transitions and error handling", () => {
     render(<App />);
 
     // Verify we start on the upload page
-    expect(screen.getByText("Migrate your ChatGPT memories to Claude")).toBeInTheDocument();
+    expect(screen.getByText("ChatGPT to Claude Memory")).toBeInTheDocument();
 
     // Navigate to the upload step (step 2) to reveal the file input
     await user.click(screen.getByText("I already have my ZIP file"));
@@ -239,7 +239,7 @@ describe("App integration – state transitions and error handling", () => {
     });
 
     // Verify we are still on the upload page (not transitioned to review)
-    expect(screen.getByText("Migrate your ChatGPT memories to Claude")).toBeInTheDocument();
+    expect(screen.getByText("ChatGPT to Claude Memory")).toBeInTheDocument();
   });
 
   it("shows error message when processConversations throws", async () => {
@@ -270,7 +270,7 @@ describe("App integration – state transitions and error handling", () => {
     });
 
     // Verify we stay on the upload page
-    expect(screen.getByText("Migrate your ChatGPT memories to Claude")).toBeInTheDocument();
+    expect(screen.getByText("ChatGPT to Claude Memory")).toBeInTheDocument();
   });
 });
 

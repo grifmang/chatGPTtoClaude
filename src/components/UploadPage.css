@@ -12,6 +12,17 @@
   max-width: 960px;
 }
 
+.upload-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.upload-subtitle {
+  color: #888;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
 .upload-drop-zone {
   border: 2px dashed #555;
   border-radius: 12px;
@@ -334,79 +345,4 @@
   margin: 0;
 }
 
-/* ─── Hero Section ─────────────────────────────────────────────────────────── */
-
-.hero {
-  text-align: center;
-  padding: 4rem 2rem 3rem;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.hero-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  line-height: 1.2;
-}
-
-.hero-subtitle {
-  font-size: 1.15rem;
-  color: #999;
-  margin-bottom: 2rem;
-}
-
-.hero-pills {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 2.5rem;
-  flex-wrap: wrap;
-}
-
-.hero-pill {
-  padding: 0.4rem 1rem;
-  border-radius: 20px;
-  border: 1px solid #444;
-  font-size: 0.85rem;
-  color: #bbb;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.hero-demo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2.5rem;
-}
-
-.demo-step {
-  padding: 1rem 1.5rem;
-  border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #333;
-  font-size: 0.9rem;
-  animation: demo-fade 6s ease-in-out infinite;
-}
-
-.demo-step-1 { animation-delay: 0s; }
-.demo-step-2 { animation-delay: 2s; }
-.demo-step-3 { animation-delay: 4s; }
-
-.demo-arrow {
-  color: #555;
-  font-size: 1.2rem;
-}
-
-@keyframes demo-fade {
-  0%, 20% { opacity: 0.4; border-color: #333; }
-  30%, 50% { opacity: 1; border-color: #646cff; }
-  60%, 100% { opacity: 0.4; border-color: #333; }
-}
-
-.hero-cta {
-  font-size: 1.1rem;
-  padding: 0.75rem 2rem;
-}
 
