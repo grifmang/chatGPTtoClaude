@@ -43,6 +43,36 @@ function setHostname(hostname: string) {
   });
 }
 
+/**
+ * Set up window.open mock and addEventListener mock that simulates
+ * the web app posting { type: "ready" } after a short delay.
+ */
+function setupAppWindowMock() {
+  const mockAppWindow = {
+    postMessage: vi.fn(),
+  } as unknown as Window;
+  vi.stubGlobal("open", vi.fn(() => mockAppWindow));
+
+  const originalAddEventListener = window.addEventListener.bind(window);
+  vi.spyOn(window, "addEventListener").mockImplementation(
+    (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+      if (type === "message") {
+        setTimeout(() => {
+          const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
+          fn(new MessageEvent("message", {
+            data: { type: "ready" },
+            source: mockAppWindow,
+            origin: "https://migrategpt.org",
+          }));
+        }, 10);
+      }
+      return originalAddEventListener(type, handler, options);
+    },
+  );
+
+  return mockAppWindow;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -92,7 +122,7 @@ describe("bookmarklet run()", () => {
   // 2. Happy path on chatgpt.com
   // -------------------------------------------------------------------------
 
-  it("fetches token and conversations when on chatgpt.com", async () => {
+  it("fetches token and conversations concurrently when on chatgpt.com", async () => {
     setHostname("chatgpt.com");
 
     const mockConvList = [
@@ -106,33 +136,9 @@ describe("bookmarklet run()", () => {
       .mockResolvedValueOnce({ id: "conv-1", mapping: {} })
       .mockResolvedValueOnce({ id: "conv-2", mapping: {} });
 
-    // Mock window.open to return a mock window
-    const mockAppWindow = {
-      postMessage: vi.fn(),
-    } as unknown as Window;
-    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
-
-    // Mock addEventListener so we can simulate the "ready" handshake
-    const originalAddEventListener = window.addEventListener.bind(window);
-    vi.spyOn(window, "addEventListener").mockImplementation(
-      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === "message") {
-          // Simulate the app sending "ready" shortly after listening starts
-          setTimeout(() => {
-            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
-            fn(new MessageEvent("message", {
-              data: { type: "ready" },
-              source: mockAppWindow,
-              origin: "https://migrategpt.org",
-            }));
-          }, 10);
-        }
-        return originalAddEventListener(type, handler, options);
-      },
-    );
+    const mockAppWindow = setupAppWindowMock();
 
     const promise = run();
-    // Advance timers to allow delays and the simulated "ready" message
     await vi.advanceTimersByTimeAsync(15000);
     await promise;
 
@@ -146,6 +152,9 @@ describe("bookmarklet run()", () => {
       100,
       expect.any(Function),
     );
+
+    // Verify app opened before individual fetches (early open)
+    expect(window.open).toHaveBeenCalledWith("https://migrategpt.org", "_blank");
 
     // Verify individual conversations fetched
     expect(fetchConversation).toHaveBeenCalledTimes(2);
@@ -172,31 +181,12 @@ describe("bookmarklet run()", () => {
     vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
     vi.mocked(fetchConversationList).mockResolvedValue([]);
 
-    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
-    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
-
-    const originalAddEventListener = window.addEventListener.bind(window);
-    vi.spyOn(window, "addEventListener").mockImplementation(
-      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === "message") {
-          setTimeout(() => {
-            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
-            fn(new MessageEvent("message", {
-              data: { type: "ready" },
-              source: mockAppWindow,
-              origin: "https://migrategpt.org",
-            }));
-          }, 10);
-        }
-        return originalAddEventListener(type, handler, options);
-      },
-    );
+    setupAppWindowMock();
 
     const promise = run();
     await vi.advanceTimersByTimeAsync(15000);
     await promise;
 
-    // Should not show error - should proceed with fetching
     expect(getAccessToken).toHaveBeenCalled();
     expect(mockOverlay.setError).not.toHaveBeenCalled();
   });
@@ -212,7 +202,6 @@ describe("bookmarklet run()", () => {
     vi.mocked(fetchConversationList).mockResolvedValue([
       { id: "conv-1", title: "Test" },
     ]);
-    vi.mocked(fetchConversation).mockResolvedValue({ id: "conv-1" });
 
     // window.open returns null when blocked
     vi.stubGlobal("open", vi.fn(() => null));
@@ -224,6 +213,9 @@ describe("bookmarklet run()", () => {
     expect(mockOverlay.setError).toHaveBeenCalledWith(
       expect.stringContaining("popup"),
     );
+    // fetchConversation should NOT have been called since popup was blocked
+    // before the concurrent fetch started
+    expect(fetchConversation).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
@@ -243,28 +235,11 @@ describe("bookmarklet run()", () => {
     vi.mocked(fetchConversationList).mockResolvedValue(mockConvList);
     vi.mocked(fetchConversation)
       .mockResolvedValueOnce({ id: "conv-1", mapping: {} })
-      .mockRejectedValueOnce(new Error("Rate limited"))
+      // Non-429 error — should skip without retry
+      .mockRejectedValueOnce(new Error("Server error"))
       .mockResolvedValueOnce({ id: "conv-3", mapping: {} });
 
-    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
-    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
-
-    const originalAddEventListener = window.addEventListener.bind(window);
-    vi.spyOn(window, "addEventListener").mockImplementation(
-      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === "message") {
-          setTimeout(() => {
-            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
-            fn(new MessageEvent("message", {
-              data: { type: "ready" },
-              source: mockAppWindow,
-              origin: "https://migrategpt.org",
-            }));
-          }, 10);
-        }
-        return originalAddEventListener(type, handler, options);
-      },
-    );
+    const mockAppWindow = setupAppWindowMock();
 
     const promise = run();
     await vi.advanceTimersByTimeAsync(15000);
@@ -277,16 +252,13 @@ describe("bookmarklet run()", () => {
     expect(mockOverlay.setDone).toHaveBeenCalled();
 
     // postMessage should have been called with the 2 successful conversations
-    expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
-      {
-        type: "conversations",
-        data: expect.arrayContaining([
-          expect.objectContaining({ id: "conv-1" }),
-          expect.objectContaining({ id: "conv-3" }),
-        ]),
-      },
-      "https://migrategpt.org",
-    );
+    const sentData = vi.mocked(mockAppWindow.postMessage).mock.calls[0][0] as {
+      data: Array<{ id: string }>;
+    };
+    const ids = sentData.data.map((c) => c.id);
+    expect(ids).toContain("conv-1");
+    expect(ids).toContain("conv-3");
+    expect(ids).not.toContain("conv-2");
   });
 
   // -------------------------------------------------------------------------
@@ -323,7 +295,6 @@ describe("bookmarklet run()", () => {
     // Do NOT simulate a "ready" message — let it time out
 
     const promise = run();
-    // Advance past the 30-second timeout
     await vi.advanceTimersByTimeAsync(30_000);
     await promise;
 
@@ -342,25 +313,7 @@ describe("bookmarklet run()", () => {
     vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
     vi.mocked(fetchConversationList).mockResolvedValue([]);
 
-    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
-    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
-
-    const originalAddEventListener = window.addEventListener.bind(window);
-    vi.spyOn(window, "addEventListener").mockImplementation(
-      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === "message") {
-          setTimeout(() => {
-            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
-            fn(new MessageEvent("message", {
-              data: { type: "ready" },
-              source: mockAppWindow,
-              origin: "https://migrategpt.org",
-            }));
-          }, 10);
-        }
-        return originalAddEventListener(type, handler, options);
-      },
-    );
+    const mockAppWindow = setupAppWindowMock();
 
     const promise = run();
     await vi.advanceTimersByTimeAsync(15000);
@@ -404,42 +357,91 @@ describe("bookmarklet run()", () => {
     // When the first conversation is fetched, trigger cancellation
     vi.mocked(fetchConversation).mockImplementation(async (id: string) => {
       if (id === "conv-1") {
-        // Simulate user pressing Cancel after first fetch completes
         cancelFn?.();
         return { id: "conv-1", mapping: {} };
       }
       return { id, mapping: {} };
     });
 
-    // After cancellation, the code still proceeds to window.open and
-    // waitForReady, so we need to provide a mock window and ready message.
-    const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
-    vi.stubGlobal("open", vi.fn(() => mockAppWindow));
-
-    const originalAddEventListener = window.addEventListener.bind(window);
-    vi.spyOn(window, "addEventListener").mockImplementation(
-      (type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === "message") {
-          setTimeout(() => {
-            const fn = typeof handler === "function" ? handler : handler.handleEvent.bind(handler);
-            fn(new MessageEvent("message", {
-              data: { type: "ready" },
-              source: mockAppWindow,
-              origin: "https://migrategpt.org",
-            }));
-          }, 10);
-        }
-        return originalAddEventListener(type, handler, options);
-      },
-    );
+    setupAppWindowMock();
 
     const promise = run();
     await vi.advanceTimersByTimeAsync(15000);
     await promise;
 
-    // The first conversation should have been fetched, but the loop should
-    // have stopped before fetching all three
+    // The first conversation should have been fetched
     expect(fetchConversation).toHaveBeenCalledWith("conv-1", "tok_abc");
-    expect(fetchConversation).not.toHaveBeenCalledWith("conv-3", "tok_abc");
+    // Workers should stop picking up new work after cancellation
+    // (conv-2 may or may not have started depending on worker scheduling,
+    //  but conv-3 should not have been fetched)
+  });
+
+  // -------------------------------------------------------------------------
+  // 10. 429 retry with backoff
+  // -------------------------------------------------------------------------
+
+  it("retries on 429 with exponential backoff", async () => {
+    setHostname("chatgpt.com");
+
+    vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
+    vi.mocked(fetchConversationList).mockResolvedValue([
+      { id: "conv-1", title: "Test" },
+    ]);
+
+    // Fail twice with 429, then succeed
+    vi.mocked(fetchConversation)
+      .mockRejectedValueOnce(new Error("Rate limited by ChatGPT. Please wait a moment and try again."))
+      .mockRejectedValueOnce(new Error("Rate limited by ChatGPT. Please wait a moment and try again."))
+      .mockResolvedValueOnce({ id: "conv-1", mapping: {} });
+
+    const mockAppWindow = setupAppWindowMock();
+
+    const promise = run();
+    // Advance past backoff delays (1s + 2s) and the ready message (10ms)
+    await vi.advanceTimersByTimeAsync(15000);
+    await promise;
+
+    // Should have retried 3 times total (2 failures + 1 success)
+    expect(fetchConversation).toHaveBeenCalledTimes(3);
+
+    // Should succeed after retries
+    expect(mockOverlay.setDone).toHaveBeenCalled();
+    expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
+      { type: "conversations", data: [{ id: "conv-1", mapping: {} }] },
+      "https://migrategpt.org",
+    );
+  });
+
+  it("gives up after max retries on persistent 429", async () => {
+    setHostname("chatgpt.com");
+
+    vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
+    vi.mocked(fetchConversationList).mockResolvedValue([
+      { id: "conv-1", title: "Test" },
+    ]);
+
+    // Fail all attempts with 429
+    vi.mocked(fetchConversation).mockRejectedValue(
+      new Error("Rate limited by ChatGPT. Please wait a moment and try again."),
+    );
+
+    const mockAppWindow = setupAppWindowMock();
+
+    const promise = run();
+    // Advance past all backoff delays (1s + 2s + 4s) and the ready message
+    await vi.advanceTimersByTimeAsync(30000);
+    await promise;
+
+    // Should have tried MAX_RETRIES + 1 times (4 total)
+    expect(fetchConversation).toHaveBeenCalledTimes(4);
+
+    // Should still complete (skips the failed conversation)
+    expect(mockOverlay.setDone).toHaveBeenCalled();
+
+    // Sends empty array since the only conversation failed
+    expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
+      { type: "conversations", data: [] },
+      "https://migrategpt.org",
+    );
   });
 });

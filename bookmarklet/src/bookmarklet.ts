@@ -5,10 +5,66 @@ import { getAccessToken, fetchConversationList, fetchConversation } from "./api"
 import { createOverlay } from "./overlay";
 
 const APP_URL = "https://migrategpt.org";
-const DELAY_MS = 100;
+const CONCURRENCY = 5;
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 1000;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch a single conversation with retry and exponential backoff on 429.
+ * Returns null if all retries are exhausted or a non-retryable error occurs.
+ */
+async function fetchWithRetry(
+  id: string,
+  token: string,
+): Promise<unknown | null> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fetchConversation(id, token);
+    } catch (err) {
+      const is429 =
+        err instanceof Error && err.message.includes("Rate limited");
+      if (is429 && attempt < MAX_RETRIES) {
+        await delay(BASE_BACKOFF_MS * 2 ** attempt);
+        continue;
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Fetch all conversations using a worker pool with bounded concurrency.
+ */
+async function fetchAllConcurrent(
+  ids: string[],
+  token: string,
+  onProgress: (completed: number, total: number) => void,
+  isCancelled: () => boolean,
+): Promise<unknown[]> {
+  const results: unknown[] = [];
+  let completed = 0;
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < ids.length && !isCancelled()) {
+      const i = nextIndex++;
+      const result = await fetchWithRetry(ids[i], token);
+      if (result !== null) {
+        results.push(result);
+      }
+      completed++;
+      onProgress(completed, ids.length);
+    }
+  }
+
+  const workerCount = Math.min(CONCURRENCY, ids.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
 }
 
 /**
@@ -67,24 +123,7 @@ export async function run(): Promise<void> {
       overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
     });
 
-    // 4. Fetch each conversation with delay
-    const conversations: unknown[] = [];
-    for (let i = 0; i < convList.length; i++) {
-      if (cancelled) break;
-      overlay.setProgress(`Fetching conversation ${i + 1} of ${convList.length}...`);
-      try {
-        const conv = await fetchConversation(convList[i].id, token);
-        conversations.push(conv);
-      } catch {
-        // Skip individual failures
-        continue;
-      }
-      if (i < convList.length - 1) {
-        await delay(DELAY_MS);
-      }
-    }
-
-    // 5. Open the web app
+    // 4. Open the web app early so it loads while we fetch conversations
     const appWindow = window.open(APP_URL, "_blank");
     if (!appWindow) {
       overlay.setError(
@@ -93,14 +132,21 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 6. Wait for "ready" handshake
-    overlay.setProgress("Waiting for app to load...");
-    await waitForReady(appWindow);
+    // 5. Fetch all conversations concurrently + wait for app ready in parallel
+    const ids = convList.map((c) => c.id);
+    const [conversations] = await Promise.all([
+      fetchAllConcurrent(ids, token, (done, total) => {
+        overlay.setProgress(`Fetching conversations (${done}/${total})...`);
+      }, () => cancelled),
+      waitForReady(appWindow),
+    ]);
 
-    // 7. Send conversations to the app
+    if (cancelled) return;
+
+    // 6. Send conversations to the app
     appWindow.postMessage({ type: "conversations", data: conversations }, APP_URL);
 
-    // 8. Done!
+    // 7. Done!
     overlay.setDone();
     setTimeout(() => overlay.destroy(), 3000);
   } catch (err: unknown) {
