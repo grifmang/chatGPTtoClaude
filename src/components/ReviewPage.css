@@ -44,9 +44,91 @@
   font-size: 0.9rem;
 }
 
-.review-bulk-actions {
+/* ─── Bulk confidence bar ─────────────────────────────────────────────────── */
+
+.bulk-confidence-bar {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.bulk-confidence-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bulk-confidence-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  min-width: 200px;
+}
+
+.btn-bulk-approve {
+  background-color: #1a3a1a;
+  color: #4caf50;
+  border-color: #4caf50;
+}
+
+.btn-bulk-approve:hover:not(:disabled) {
+  background-color: #2a4a2a;
+}
+
+.btn-bulk-reject {
+  background-color: #3a1a1a;
+  color: #f44336;
+  border-color: #f44336;
+}
+
+.btn-bulk-reject:hover:not(:disabled) {
+  background-color: #4a2a2a;
+}
+
+.btn-bulk-approve:disabled,
+.btn-bulk-reject:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ─── Showing count & pagination ──────────────────────────────────────────── */
+
+.review-showing {
+  font-size: 0.85rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.review-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.page-indicator {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.btn-page {
+  background-color: #1a1a2a;
+  color: #aaa;
+  border-color: #444;
+}
+
+.btn-page:hover:not(:disabled) {
+  border-color: #646cff;
+}
+
+.btn-page:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .btn {

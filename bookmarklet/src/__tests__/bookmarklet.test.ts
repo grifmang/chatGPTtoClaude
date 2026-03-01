@@ -9,6 +9,7 @@ const { mockOverlay, createOverlayMock } = vi.hoisted(() => {
   const mockOverlay: Overlay = {
     setProgress: vi.fn(),
     setError: vi.fn(),
+    promptAction: vi.fn(() => Promise.resolve()),
     setDone: vi.fn(),
     destroy: vi.fn(),
   };
@@ -85,6 +86,7 @@ describe("bookmarklet run()", () => {
     // Reset the mock overlay methods
     mockOverlay.setProgress = vi.fn();
     mockOverlay.setError = vi.fn();
+    mockOverlay.promptAction = vi.fn(() => Promise.resolve());
     mockOverlay.setDone = vi.fn();
     mockOverlay.destroy = vi.fn();
 
@@ -122,7 +124,7 @@ describe("bookmarklet run()", () => {
   // 2. Happy path on chatgpt.com
   // -------------------------------------------------------------------------
 
-  it("fetches token and conversations concurrently when on chatgpt.com", async () => {
+  it("fetches conversations then prompts user to open the app", async () => {
     setHostname("chatgpt.com");
 
     const mockConvList = [
@@ -153,13 +155,19 @@ describe("bookmarklet run()", () => {
       expect.any(Function),
     );
 
-    // Verify app opened before individual fetches (early open)
-    expect(window.open).toHaveBeenCalledWith("https://migrategpt.org", "_blank");
-
     // Verify individual conversations fetched
     expect(fetchConversation).toHaveBeenCalledTimes(2);
     expect(fetchConversation).toHaveBeenCalledWith("conv-1", "tok_abc");
     expect(fetchConversation).toHaveBeenCalledWith("conv-2", "tok_abc");
+
+    // Verify user was prompted before opening the app
+    expect(mockOverlay.promptAction).toHaveBeenCalledWith(
+      expect.stringContaining("2 conversations"),
+      expect.stringContaining("MigrateGPT"),
+    );
+
+    // Verify app opened AFTER prompt (not before)
+    expect(window.open).toHaveBeenCalledWith("https://migrategpt.org", "_blank");
 
     // Verify postMessage was called with conversations data
     expect(mockAppWindow.postMessage).toHaveBeenCalledWith(
@@ -202,6 +210,8 @@ describe("bookmarklet run()", () => {
     vi.mocked(fetchConversationList).mockResolvedValue([
       { id: "conv-1", title: "Test" },
     ]);
+    vi.mocked(fetchConversation)
+      .mockResolvedValueOnce({ id: "conv-1", mapping: {} });
 
     // window.open returns null when blocked
     vi.stubGlobal("open", vi.fn(() => null));
@@ -213,9 +223,6 @@ describe("bookmarklet run()", () => {
     expect(mockOverlay.setError).toHaveBeenCalledWith(
       expect.stringContaining("popup"),
     );
-    // fetchConversation should NOT have been called since popup was blocked
-    // before the concurrent fetch started
-    expect(fetchConversation).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
@@ -287,7 +294,11 @@ describe("bookmarklet run()", () => {
     setHostname("chatgpt.com");
 
     vi.mocked(getAccessToken).mockResolvedValue("tok_abc");
-    vi.mocked(fetchConversationList).mockResolvedValue([]);
+    vi.mocked(fetchConversationList).mockResolvedValue([
+      { id: "conv-1", title: "Test" },
+    ]);
+    vi.mocked(fetchConversation)
+      .mockResolvedValueOnce({ id: "conv-1", mapping: {} });
 
     const mockAppWindow = { postMessage: vi.fn() } as unknown as Window;
     vi.stubGlobal("open", vi.fn(() => mockAppWindow));

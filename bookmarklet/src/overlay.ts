@@ -4,6 +4,8 @@ export interface Overlay {
   setProgress(text: string): void;
   /** Switch to the error state with the given message. */
   setError(text: string): void;
+  /** Show an action button and resolve when the user clicks it. */
+  promptAction(statusText: string, buttonLabel: string): Promise<void>;
   /** Switch to the "done" state. */
   setDone(): void;
   /** Remove the overlay from the DOM entirely. */
@@ -96,6 +98,26 @@ export function createOverlay(onCancel?: () => void): Overlay {
       title.textContent = "Export Error";
       status.textContent = text;
       button.textContent = "Close";
+    },
+
+    promptAction(statusText: string, buttonLabel: string): Promise<void> {
+      status.textContent = statusText;
+      button.textContent = buttonLabel;
+      return new Promise<void>((resolve) => {
+        button.replaceWith(button.cloneNode(true) as HTMLButtonElement);
+        const newButton = card.querySelector("button")!;
+        Object.assign(newButton.style, {
+          background: "#2563eb",
+          border: "1px solid #3b82f6",
+          borderRadius: "8px",
+          color: "#fff",
+          padding: "0.6rem 1.5rem",
+          fontSize: "0.95rem",
+          cursor: "pointer",
+          fontWeight: "600",
+        } satisfies Partial<CSSStyleDeclaration>);
+        newButton.addEventListener("click", () => resolve(), { once: true });
+      });
     },
 
     setDone() {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { MemoryCandidate, MemoryCategory, Confidence } from "../types";
 import { MemoryCard } from "./MemoryCard";
 import "./ReviewPage.css";
@@ -28,6 +28,10 @@ const CONFIDENCE_OPTIONS: { value: "" | Confidence; label: string }[] = [
   { value: "low", label: "Low" },
 ];
 
+const CONFIDENCE_LEVELS: Confidence[] = ["high", "medium", "low"];
+
+const PAGE_SIZE = 25;
+
 export function ReviewPage({
   candidates,
   onUpdateCandidate,
@@ -35,30 +39,49 @@ export function ReviewPage({
 }: ReviewPageProps) {
   const [categoryFilter, setCategoryFilter] = useState<"" | MemoryCategory>("");
   const [confidenceFilter, setConfidenceFilter] = useState<"" | Confidence>("");
+  const [page, setPage] = useState(0);
 
   const approvedCount = candidates.filter((c) => c.status === "approved").length;
   const totalCount = candidates.length;
 
-  const filteredCandidates = candidates.filter((c) => {
-    if (categoryFilter && c.category !== categoryFilter) return false;
-    if (confidenceFilter && c.confidence !== confidenceFilter) return false;
-    return true;
-  });
+  const filteredCandidates = useMemo(
+    () =>
+      candidates.filter((c) => {
+        if (categoryFilter && c.category !== categoryFilter) return false;
+        if (confidenceFilter && c.confidence !== confidenceFilter) return false;
+        return true;
+      }),
+    [candidates, categoryFilter, confidenceFilter],
+  );
 
-  const handleBulkApproveHigh = () => {
+  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * PAGE_SIZE;
+  const pageCandidates = filteredCandidates.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const confidenceCounts = useMemo(() => {
+    const counts: Record<Confidence, { total: number; pending: number }> = {
+      high: { total: 0, pending: 0 },
+      medium: { total: 0, pending: 0 },
+      low: { total: 0, pending: 0 },
+    };
     for (const c of candidates) {
-      if (c.confidence === "high" && c.status === "pending") {
-        onUpdateCandidate(c.id, { status: "approved" });
+      counts[c.confidence].total++;
+      if (c.status === "pending") counts[c.confidence].pending++;
+    }
+    return counts;
+  }, [candidates]);
+
+  const handleBulkAction = (confidence: Confidence, status: "approved" | "rejected") => {
+    for (const c of candidates) {
+      if (c.confidence === confidence && c.status === "pending") {
+        onUpdateCandidate(c.id, { status });
       }
     }
   };
 
-  const handleBulkRejectLow = () => {
-    for (const c of candidates) {
-      if (c.confidence === "low" && c.status === "pending") {
-        onUpdateCandidate(c.id, { status: "rejected" });
-      }
-    }
+  const handleFilterChange = () => {
+    setPage(0);
   };
 
   return (
@@ -70,13 +93,42 @@ export function ReviewPage({
         </p>
       </div>
 
+      <div className="bulk-confidence-bar">
+        {CONFIDENCE_LEVELS.map((level) => {
+          const { total, pending } = confidenceCounts[level];
+          if (total === 0) return null;
+          return (
+            <div key={level} className="bulk-confidence-group">
+              <span className={`bulk-confidence-label confidence-${level}`}>
+                {level} ({pending} pending / {total})
+              </span>
+              <button
+                className="btn btn-bulk-approve"
+                disabled={pending === 0}
+                onClick={() => handleBulkAction(level, "approved")}
+              >
+                Approve all
+              </button>
+              <button
+                className="btn btn-bulk-reject"
+                disabled={pending === 0}
+                onClick={() => handleBulkAction(level, "rejected")}
+              >
+                Reject all
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="review-toolbar">
         <div className="review-filters">
           <select
             value={categoryFilter}
-            onChange={(e) =>
-              setCategoryFilter(e.target.value as "" | MemoryCategory)
-            }
+            onChange={(e) => {
+              setCategoryFilter(e.target.value as "" | MemoryCategory);
+              handleFilterChange();
+            }}
             className="review-filter-select"
           >
             {CATEGORY_OPTIONS.map((opt) => (
@@ -88,9 +140,10 @@ export function ReviewPage({
 
           <select
             value={confidenceFilter}
-            onChange={(e) =>
-              setConfidenceFilter(e.target.value as "" | Confidence)
-            }
+            onChange={(e) => {
+              setConfidenceFilter(e.target.value as "" | Confidence);
+              handleFilterChange();
+            }}
             className="review-filter-select"
           >
             {CONFIDENCE_OPTIONS.map((opt) => (
@@ -99,20 +152,16 @@ export function ReviewPage({
               </option>
             ))}
           </select>
-        </div>
 
-        <div className="review-bulk-actions">
-          <button className="btn btn-bulk" onClick={handleBulkApproveHigh}>
-            Approve all high-confidence
-          </button>
-          <button className="btn btn-bulk" onClick={handleBulkRejectLow}>
-            Reject all low-confidence
-          </button>
+          <span className="review-showing">
+            Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredCandidates.length)} of{" "}
+            {filteredCandidates.length}
+          </span>
         </div>
       </div>
 
       <div className="review-card-list">
-        {filteredCandidates.map((candidate) => (
+        {pageCandidates.map((candidate) => (
           <MemoryCard
             key={candidate.id}
             candidate={candidate}
@@ -120,6 +169,28 @@ export function ReviewPage({
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="review-pagination">
+          <button
+            className="btn btn-page"
+            disabled={safePage === 0}
+            onClick={() => setPage(safePage - 1)}
+          >
+            Previous
+          </button>
+          <span className="page-indicator">
+            Page {safePage + 1} of {totalPages}
+          </span>
+          <button
+            className="btn btn-page"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage(safePage + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {approvedCount > 0 && (
         <div className="review-export-bar">

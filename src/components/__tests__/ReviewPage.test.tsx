@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { ReviewPage } from "../ReviewPage";
 import type { MemoryCandidate } from "../../types";
 
@@ -184,8 +184,11 @@ describe("ReviewPage", () => {
       />,
     );
 
-    const bulkApproveButton = screen.getByRole("button", {
-      name: /approve all high/i,
+    // Find the "Approve all" button in the high-confidence row
+    const highRow = screen.getByText(/high/i, { selector: ".bulk-confidence-label" })
+      .closest(".bulk-confidence-group")!;
+    const bulkApproveButton = within(highRow).getByRole("button", {
+      name: /approve all/i,
     });
     fireEvent.click(bulkApproveButton);
 

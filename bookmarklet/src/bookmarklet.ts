@@ -113,8 +113,32 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 2. Open the web app immediately while we still have the user-gesture
-    //    context — browsers block window.open after async work.
+    // 2. Authenticate
+    overlay.setProgress("Authenticating...");
+    const token = await getAccessToken();
+
+    // 3. Fetch conversation list
+    overlay.setProgress("Fetching conversation list...");
+    const convList = await fetchConversationList(token, 100, (fetched, total) => {
+      overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
+    });
+
+    // 4. Fetch all conversations
+    const ids = convList.map((c) => c.id);
+    const conversations = await fetchAllConcurrent(ids, token, (done, total) => {
+      overlay.setProgress(`Fetching conversations (${done}/${total})...`);
+    }, () => cancelled);
+
+    if (cancelled) return;
+
+    // 5. Prompt user to open the app — their click is a fresh user gesture
+    //    so popup blockers won't interfere and focus stays on chatgpt.com
+    //    until the user is ready.
+    await overlay.promptAction(
+      `Exported ${conversations.length} conversations. Ready to continue.`,
+      "Open MigrateGPT \u2192",
+    );
+
     const appWindow = window.open(APP_URL, "_blank");
     if (!appWindow) {
       overlay.setError(
@@ -123,32 +147,9 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 3. Start listening for the app's "ready" signal RIGHT AWAY so we
-    //    don't miss it while authenticating / fetching the conversation list.
-    const readyPromise = waitForReady(appWindow);
-
-    // 4. Authenticate
-    overlay.setProgress("Authenticating...");
-    const token = await getAccessToken();
-
-    // 5. Fetch conversation list
-    overlay.setProgress("Fetching conversation list...");
-    const convList = await fetchConversationList(token, 100, (fetched, total) => {
-      overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
-    });
-
-    // 6. Fetch all conversations concurrently + wait for app ready in parallel
-    const ids = convList.map((c) => c.id);
-    const [conversations] = await Promise.all([
-      fetchAllConcurrent(ids, token, (done, total) => {
-        overlay.setProgress(`Fetching conversations (${done}/${total})...`);
-      }, () => cancelled),
-      readyPromise,
-    ]);
-
-    if (cancelled) return;
-
-    // 6. Send conversations to the app
+    // 6. Wait for the app to signal it's ready, then send data
+    overlay.setProgress("Sending data to MigrateGPT...");
+    await waitForReady(appWindow);
     appWindow.postMessage({ type: "conversations", data: conversations }, APP_URL);
 
     // 7. Done!
