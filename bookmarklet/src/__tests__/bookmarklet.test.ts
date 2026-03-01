@@ -10,6 +10,7 @@ const { mockOverlay, createOverlayMock } = vi.hoisted(() => {
     setProgress: vi.fn(),
     setError: vi.fn(),
     promptAction: vi.fn(() => Promise.resolve()),
+    promptChoice: vi.fn(() => Promise.resolve("all")),
     setDone: vi.fn(),
     destroy: vi.fn(),
   };
@@ -87,6 +88,7 @@ describe("bookmarklet run()", () => {
     mockOverlay.setProgress = vi.fn();
     mockOverlay.setError = vi.fn();
     mockOverlay.promptAction = vi.fn(() => Promise.resolve());
+    mockOverlay.promptChoice = vi.fn(() => Promise.resolve("all"));
     mockOverlay.setDone = vi.fn();
     mockOverlay.destroy = vi.fn();
 
@@ -153,6 +155,20 @@ describe("bookmarklet run()", () => {
       "tok_abc",
       100,
       expect.any(Function),
+    );
+
+    // Verify date range selection was prompted
+    expect(mockOverlay.promptChoice).toHaveBeenCalledWith(
+      expect.stringContaining("2 conversations"),
+      expect.arrayContaining([
+        expect.objectContaining({ label: "All time", value: "all" }),
+      ]),
+    );
+
+    // Verify count preview was shown
+    expect(mockOverlay.promptAction).toHaveBeenCalledWith(
+      expect.stringContaining("2 conversations"),
+      "Start export",
     );
 
     // Verify individual conversations fetched
@@ -329,6 +345,13 @@ describe("bookmarklet run()", () => {
     const promise = run();
     await vi.advanceTimersByTimeAsync(15000);
     await promise;
+
+    // Verify date range selection and count preview were shown
+    expect(mockOverlay.promptChoice).toHaveBeenCalled();
+    expect(mockOverlay.promptAction).toHaveBeenCalledWith(
+      expect.stringContaining("0 conversations"),
+      "Start export",
+    );
 
     // Should NOT have fetched any individual conversations
     expect(fetchConversation).not.toHaveBeenCalled();

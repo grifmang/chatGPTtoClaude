@@ -6,6 +6,8 @@ export interface Overlay {
   setError(text: string): void;
   /** Show an action button and resolve when the user clicks it. */
   promptAction(statusText: string, buttonLabel: string): Promise<void>;
+  /** Show a row of choice buttons and resolve with the clicked option's value. */
+  promptChoice(statusText: string, options: { label: string; value: string }[]): Promise<string>;
   /** Switch to the "done" state. */
   setDone(): void;
   /** Remove the overlay from the DOM entirely. */
@@ -117,6 +119,50 @@ export function createOverlay(onCancel?: () => void): Overlay {
           fontWeight: "600",
         } satisfies Partial<CSSStyleDeclaration>);
         newButton.addEventListener("click", () => resolve(), { once: true });
+      });
+    },
+
+    promptChoice(
+      statusText: string,
+      options: { label: string; value: string }[],
+    ): Promise<string> {
+      status.textContent = statusText;
+      return new Promise<string>((resolve) => {
+        // Replace the cancel button with a row of choice buttons
+        button.remove();
+        const row = document.createElement("div");
+        Object.assign(row.style, {
+          display: "flex",
+          gap: "0.5rem",
+          justifyContent: "center",
+          flexWrap: "wrap",
+        } satisfies Partial<CSSStyleDeclaration>);
+
+        for (const option of options) {
+          const btn = document.createElement("button");
+          btn.textContent = option.label;
+          Object.assign(btn.style, {
+            background: "#2563eb",
+            border: "1px solid #3b82f6",
+            borderRadius: "8px",
+            color: "#fff",
+            padding: "0.6rem 1.5rem",
+            fontSize: "0.95rem",
+            cursor: "pointer",
+            fontWeight: "600",
+          } satisfies Partial<CSSStyleDeclaration>);
+          btn.addEventListener(
+            "click",
+            () => {
+              row.replaceWith(button);
+              resolve(option.value);
+            },
+            { once: true },
+          );
+          row.appendChild(btn);
+        }
+
+        card.appendChild(row);
       });
     },
 

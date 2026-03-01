@@ -123,15 +123,45 @@ export async function run(): Promise<void> {
       overlay.setProgress(`Fetching conversation list... (${fetched}/${total})`);
     });
 
-    // 4. Fetch all conversations
-    const ids = convList.map((c) => c.id);
+    // 4. Date range selection
+    const rangeValue = await overlay.promptChoice(
+      `Found ${convList.length} conversations.`,
+      [
+        { label: "All time", value: "all" },
+        { label: "Last 30 days", value: "30d" },
+        { label: "Last 6 months", value: "6m" },
+        { label: "Last year", value: "1y" },
+      ],
+    );
+
+    // Filter by date range
+    const now = Date.now() / 1000;
+    const cutoffs: Record<string, number> = {
+      all: 0,
+      "30d": now - 30 * 86400,
+      "6m": now - 182 * 86400,
+      "1y": now - 365 * 86400,
+    };
+    const cutoff = cutoffs[rangeValue] ?? 0;
+    const filteredList = cutoff > 0
+      ? convList.filter((c) => (c.create_time ?? 0) >= cutoff)
+      : convList;
+
+    // 5. Count preview
+    await overlay.promptAction(
+      `Exporting ${filteredList.length} conversations.`,
+      "Start export",
+    );
+
+    // 6. Fetch all conversations
+    const ids = filteredList.map((c) => c.id);
     const conversations = await fetchAllConcurrent(ids, token, (done, total) => {
       overlay.setProgress(`Fetching conversations (${done}/${total})...`);
     }, () => cancelled);
 
     if (cancelled) return;
 
-    // 5. Prompt user to open the app — their click is a fresh user gesture
+    // 7. Prompt user to open the app — their click is a fresh user gesture
     //    so popup blockers won't interfere and focus stays on chatgpt.com
     //    until the user is ready.
     await overlay.promptAction(
@@ -147,12 +177,12 @@ export async function run(): Promise<void> {
       return;
     }
 
-    // 6. Wait for the app to signal it's ready, then send data
+    // 8. Wait for the app to signal it's ready, then send data
     overlay.setProgress("Sending data to MigrateGPT...");
     await waitForReady(appWindow);
     appWindow.postMessage({ type: "conversations", data: conversations }, APP_URL);
 
-    // 7. Done!
+    // 9. Done!
     overlay.setDone();
     setTimeout(() => overlay.destroy(), 3000);
   } catch (err: unknown) {
