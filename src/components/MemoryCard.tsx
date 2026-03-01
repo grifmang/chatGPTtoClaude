@@ -32,7 +32,7 @@ export function MemoryCard({ candidate, onUpdate }: MemoryCardProps) {
     .join(" ");
 
   return (
-    <div className={cardClass}>
+    <div className={cardClass} data-testid="memory-card">
       <div className="memory-card-header">
         <span className={`confidence-badge ${CONFIDENCE_COLORS[confidence]}`}>
           {confidence}

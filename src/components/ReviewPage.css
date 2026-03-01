@@ -18,6 +18,46 @@
   font-size: 1rem;
 }
 
+/* ─── Progress bar ───────────────────────────────────────────────────────── */
+
+.review-progress-bar {
+  height: 6px;
+  background: #2a2a2a;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.review-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #64b5f6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ─── View toggle ────────────────────────────────────────────────────────── */
+
+.review-view-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(100, 108, 255, 0.08);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.btn-toggle-view {
+  background-color: #1a1a2a;
+  color: #aaa;
+  border-color: #444;
+}
+
+.btn-toggle-view:hover {
+  border-color: #646cff;
+}
+
 .review-toolbar {
   display: flex;
   justify-content: space-between;

@@ -23,7 +23,7 @@ function makeCandidate(
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("ReviewPage", () => {
-  it("renders all candidates", () => {
+  it("renders all pending candidates by default", () => {
     const candidates = [
       makeCandidate({ id: "1", text: "Memory one" }),
       makeCandidate({ id: "2", text: "Memory two" }),
@@ -43,7 +43,7 @@ describe("ReviewPage", () => {
     expect(screen.getByText("Memory three")).toBeInTheDocument();
   });
 
-  it("shows approval counter", () => {
+  it("shows reviewed/approved counter", () => {
     const candidates = [
       makeCandidate({ id: "1", status: "approved" }),
       makeCandidate({ id: "2", status: "approved" }),
@@ -59,7 +59,9 @@ describe("ReviewPage", () => {
       />,
     );
 
-    expect(screen.getByText(/2 of 4 memories approved/i)).toBeInTheDocument();
+    // Counter now shows: "{reviewedCount} of {totalCount} reviewed — {approvedCount} approved"
+    expect(screen.getByText(/3 of 4 reviewed/)).toBeInTheDocument();
+    expect(screen.getByText(/2 approved/)).toBeInTheDocument();
   });
 
   it("calls onUpdateCandidate with approved status when approve button is clicked", () => {
@@ -106,7 +108,7 @@ describe("ReviewPage", () => {
     });
   });
 
-  it("shows undo button for approved candidates", () => {
+  it("shows undo button for approved candidates when showAll is toggled on", () => {
     const onUpdateCandidate = vi.fn();
     const candidates = [
       makeCandidate({ id: "c1", status: "approved" }),
@@ -119,6 +121,10 @@ describe("ReviewPage", () => {
         onExport={vi.fn()}
       />,
     );
+
+    // Approved candidates are hidden by default (pending-only view)
+    // Click "Show all" to reveal them
+    fireEvent.click(screen.getByRole("button", { name: /show all/i }));
 
     const undoButton = screen.getByRole("button", { name: /undo/i });
     fireEvent.click(undoButton);
@@ -237,6 +243,185 @@ describe("ReviewPage", () => {
   });
 });
 
+// ─── Pending-only view + toggle ─────────────────────────────────────────────
+
+describe("ReviewPage - pending-only view", () => {
+  it("shows only pending items by default", () => {
+    const candidates = [
+      makeCandidate({ id: "1", text: "Pending item", status: "pending" }),
+      makeCandidate({ id: "2", text: "Approved item", status: "approved" }),
+      makeCandidate({ id: "3", text: "Rejected item", status: "rejected" }),
+    ];
+
+    render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    // Only the pending item card should be visible
+    expect(screen.getByText("Pending item")).toBeInTheDocument();
+    expect(screen.queryByText("Approved item")).not.toBeInTheDocument();
+    expect(screen.queryByText("Rejected item")).not.toBeInTheDocument();
+  });
+
+  it("shows toggle bar with pending count by default", () => {
+    const candidates = [
+      makeCandidate({ id: "1", status: "pending" }),
+      makeCandidate({ id: "2", status: "approved" }),
+      makeCandidate({ id: "3", status: "rejected" }),
+    ];
+
+    render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/showing 1 pending/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show all/i })).toBeInTheDocument();
+  });
+
+  it("reveals all candidates when 'Show all' is clicked", () => {
+    const candidates = [
+      makeCandidate({ id: "1", text: "Pending item", status: "pending" }),
+      makeCandidate({ id: "2", text: "Approved item", status: "approved" }),
+      makeCandidate({ id: "3", text: "Rejected item", status: "rejected" }),
+    ];
+
+    render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    // Click "Show all"
+    fireEvent.click(screen.getByRole("button", { name: /show all/i }));
+
+    // All items should now be visible
+    expect(screen.getByText("Pending item")).toBeInTheDocument();
+    expect(screen.getByText("Approved item")).toBeInTheDocument();
+    expect(screen.getByText("Rejected item")).toBeInTheDocument();
+
+    // Toggle text should change
+    expect(screen.getByText(/showing all 3 memories/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show pending only/i })).toBeInTheDocument();
+  });
+
+  it("switches back to pending-only when 'Show pending only' is clicked", () => {
+    const candidates = [
+      makeCandidate({ id: "1", text: "Pending item", status: "pending" }),
+      makeCandidate({ id: "2", text: "Approved item", status: "approved" }),
+    ];
+
+    render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    // Toggle to show all
+    fireEvent.click(screen.getByRole("button", { name: /show all/i }));
+    expect(screen.getByText("Approved item")).toBeInTheDocument();
+
+    // Toggle back to pending only
+    fireEvent.click(screen.getByRole("button", { name: /show pending only/i }));
+    expect(screen.queryByText("Approved item")).not.toBeInTheDocument();
+    expect(screen.getByText("Pending item")).toBeInTheDocument();
+  });
+});
+
+// ─── Progress bar ───────────────────────────────────────────────────────────
+
+describe("ReviewPage - progress bar", () => {
+  it("shows progress bar with correct counts", () => {
+    const candidates = [
+      makeCandidate({ id: "1", status: "approved" }),
+      makeCandidate({ id: "2", status: "rejected" }),
+      makeCandidate({ id: "3", status: "pending" }),
+      makeCandidate({ id: "4", status: "pending" }),
+    ];
+
+    render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    // 2 of 4 reviewed (1 approved + 1 rejected), 1 approved
+    expect(screen.getByText(/2 of 4 reviewed/)).toBeInTheDocument();
+    expect(screen.getByText(/1 approved/)).toBeInTheDocument();
+  });
+
+  it("renders progress bar fill at correct width", () => {
+    const candidates = [
+      makeCandidate({ id: "1", status: "approved" }),
+      makeCandidate({ id: "2", status: "pending" }),
+    ];
+
+    const { container } = render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    const fill = container.querySelector(".review-progress-fill") as HTMLElement;
+    expect(fill).toBeInTheDocument();
+    // 1 of 2 reviewed = 50%
+    expect(fill.style.width).toBe("50%");
+  });
+
+  it("shows 0% progress when no candidates are reviewed", () => {
+    const candidates = [
+      makeCandidate({ id: "1", status: "pending" }),
+      makeCandidate({ id: "2", status: "pending" }),
+    ];
+
+    const { container } = render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    const fill = container.querySelector(".review-progress-fill") as HTMLElement;
+    expect(fill.style.width).toBe("0%");
+  });
+
+  it("shows 100% progress when all candidates are reviewed", () => {
+    const candidates = [
+      makeCandidate({ id: "1", status: "approved" }),
+      makeCandidate({ id: "2", status: "rejected" }),
+    ];
+
+    const { container } = render(
+      <ReviewPage
+        candidates={candidates}
+        onUpdateCandidate={vi.fn()}
+        onExport={vi.fn()}
+      />,
+    );
+
+    const fill = container.querySelector(".review-progress-fill") as HTMLElement;
+    expect(fill.style.width).toBe("100%");
+  });
+});
+
+// ─── Filter gap tests ───────────────────────────────────────────────────────
+
 describe("ReviewPage - Filter gap tests", () => {
   it("category filter changes displayed cards", () => {
     const candidates = [
@@ -254,7 +439,7 @@ describe("ReviewPage - Filter gap tests", () => {
       />,
     );
 
-    // All candidates visible initially
+    // All pending candidates visible initially
     expect(screen.getByText("I like dark mode")).toBeInTheDocument();
     expect(screen.getByText("Uses TypeScript")).toBeInTheDocument();
     expect(screen.getByText("Prefers tabs")).toBeInTheDocument();
@@ -287,7 +472,7 @@ describe("ReviewPage - Filter gap tests", () => {
       />,
     );
 
-    // All candidates visible initially
+    // All pending candidates visible initially
     expect(screen.getByText("High confidence item")).toBeInTheDocument();
     expect(screen.getByText("Medium confidence item")).toBeInTheDocument();
     expect(screen.getByText("Low confidence item")).toBeInTheDocument();
@@ -318,7 +503,7 @@ describe("ReviewPage - Filter gap tests", () => {
       />,
     );
 
-    // Both visible initially
+    // Both visible initially (both are pending)
     expect(screen.getByText("Pref high")).toBeInTheDocument();
     expect(screen.getByText("Tech medium")).toBeInTheDocument();
 

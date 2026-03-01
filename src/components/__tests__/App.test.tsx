@@ -136,8 +136,80 @@ describe("App integration – state transitions and error handling", () => {
     expect(vi.mocked(parseConversation).mock.calls[0][0]).toEqual(FAKE_CONVERSATION);
     expect(extractAllMemories).toHaveBeenCalledWith([FAKE_PARSED]);
 
+    // Smart defaults auto-approve high-confidence memories, so they are hidden
+    // in the pending-only view. Click "Show all" to reveal them.
+    await user.click(screen.getByRole("button", { name: /show all/i }));
+
     // Verify the memory candidate is displayed
     expect(screen.getByText("User prefers TypeScript")).toBeInTheDocument();
+  });
+
+  it("applies smart defaults: high=approved, medium=pending, low=rejected", async () => {
+    const highMemory: MemoryCandidate = {
+      id: "high-1",
+      text: "High confidence fact",
+      category: "technical",
+      confidence: "high",
+      sourceTitle: "Test",
+      sourceTimestamp: 1700000000,
+      status: "pending",
+    };
+    const mediumMemory: MemoryCandidate = {
+      id: "med-1",
+      text: "Medium confidence fact",
+      category: "technical",
+      confidence: "medium",
+      sourceTitle: "Test",
+      sourceTimestamp: 1700000000,
+      status: "pending",
+    };
+    const lowMemory: MemoryCandidate = {
+      id: "low-1",
+      text: "Low confidence fact",
+      category: "technical",
+      confidence: "low",
+      sourceTitle: "Test",
+      sourceTimestamp: 1700000000,
+      status: "pending",
+    };
+
+    vi.mocked(extractConversations).mockResolvedValue([FAKE_CONVERSATION]);
+    vi.mocked(parseConversation).mockReturnValue(FAKE_PARSED);
+    vi.mocked(extractAllMemories).mockReturnValue([
+      highMemory,
+      mediumMemory,
+      lowMemory,
+    ]);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Navigate to upload step and upload a file
+    await user.click(screen.getByText("I already have my ZIP file"));
+    const fakeFile = new File(["content"], "export.zip", {
+      type: "application/zip",
+    });
+    await user.upload(screen.getByTestId("file-input"), fakeFile);
+
+    // Wait for review page
+    await waitFor(() => {
+      expect(screen.getByText("Review Extracted Memories")).toBeInTheDocument();
+    });
+
+    // In pending-only view, only medium-confidence (still pending) should be visible
+    expect(screen.getByText("Medium confidence fact")).toBeInTheDocument();
+    expect(screen.queryByText("High confidence fact")).not.toBeInTheDocument();
+    expect(screen.queryByText("Low confidence fact")).not.toBeInTheDocument();
+
+    // Counter should show 2 of 3 reviewed (high=approved, low=rejected), 1 approved
+    expect(screen.getByText(/2 of 3 reviewed/)).toBeInTheDocument();
+    expect(screen.getByText(/1 approved/)).toBeInTheDocument();
+
+    // Toggle to show all and verify all three are visible
+    await user.click(screen.getByRole("button", { name: /show all/i }));
+    expect(screen.getByText("High confidence fact")).toBeInTheDocument();
+    expect(screen.getByText("Medium confidence fact")).toBeInTheDocument();
+    expect(screen.getByText("Low confidence fact")).toBeInTheDocument();
   });
 
   it("shows error message when extractConversations throws (corrupted ZIP)", async () => {

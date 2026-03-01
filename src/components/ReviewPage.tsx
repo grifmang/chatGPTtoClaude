@@ -40,18 +40,23 @@ export function ReviewPage({
   const [categoryFilter, setCategoryFilter] = useState<"" | MemoryCategory>("");
   const [confidenceFilter, setConfidenceFilter] = useState<"" | Confidence>("");
   const [page, setPage] = useState(0);
+  const [showAll, setShowAll] = useState(false);
 
   const approvedCount = candidates.filter((c) => c.status === "approved").length;
   const totalCount = candidates.length;
+  const reviewedCount = candidates.filter((c) => c.status !== "pending").length;
+  const reviewProgress = totalCount > 0 ? (reviewedCount / totalCount) * 100 : 0;
+  const pendingCount = totalCount - reviewedCount;
 
   const filteredCandidates = useMemo(
     () =>
       candidates.filter((c) => {
+        if (!showAll && c.status !== "pending") return false;
         if (categoryFilter && c.category !== categoryFilter) return false;
         if (confidenceFilter && c.confidence !== confidenceFilter) return false;
         return true;
       }),
-    [candidates, categoryFilter, confidenceFilter],
+    [candidates, categoryFilter, confidenceFilter, showAll],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE));
@@ -89,8 +94,32 @@ export function ReviewPage({
       <div className="review-header">
         <h1>Review Extracted Memories</h1>
         <p className="review-counter">
-          {approvedCount} of {totalCount} memories approved
+          {reviewedCount} of {totalCount} reviewed &mdash; {approvedCount} approved
         </p>
+      </div>
+
+      <div className="review-progress-bar">
+        <div
+          className="review-progress-fill"
+          style={{ width: `${reviewProgress}%` }}
+        />
+      </div>
+
+      <div className="review-view-toggle">
+        <span>
+          {showAll
+            ? `Showing all ${totalCount} memories`
+            : `Showing ${pendingCount} pending memories`}
+        </span>
+        <button
+          className="btn btn-toggle-view"
+          onClick={() => {
+            setShowAll((prev) => !prev);
+            setPage(0);
+          }}
+        >
+          {showAll ? "Show pending only" : "Show all"}
+        </button>
       </div>
 
       <div className="bulk-confidence-bar">

@@ -46,7 +46,18 @@ function App() {
           memories = extractAllMemories(parsed);
         }
 
-        setCandidates(memories);
+        // Apply smart defaults based on confidence level
+        const withDefaults = memories.map((m) => ({
+          ...m,
+          status:
+            m.confidence === "high"
+              ? "approved" as const
+              : m.confidence === "low"
+                ? "rejected" as const
+                : "pending" as const,
+        }));
+
+        setCandidates(withDefaults);
         setState("review");
       } catch (err) {
         setError(
