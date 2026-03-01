@@ -30,41 +30,73 @@ function tokenize(text: string): string[] {
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 }
 
+// ─── Ngram Extraction ───────────────────────────────────────────────────────
+
+function isAllStopWords(ngram: string[]): boolean {
+  return ngram.every((w) => STOP_WORDS.has(w));
+}
+
+function extractNgrams(words: string[]): string[] {
+  const ngrams: string[] = [];
+
+  // Bigrams
+  for (let i = 0; i < words.length - 1; i++) {
+    const bigram = [words[i], words[i + 1]];
+    if (!isAllStopWords(bigram)) {
+      ngrams.push(bigram.join(" "));
+    }
+  }
+
+  // Trigrams
+  for (let i = 0; i < words.length - 2; i++) {
+    const trigram = [words[i], words[i + 1], words[i + 2]];
+    if (!isAllStopWords(trigram)) {
+      ngrams.push(trigram.join(" "));
+    }
+  }
+
+  return ngrams;
+}
+
 // ─── Extractor ───────────────────────────────────────────────────────────────
 
 export function extractThemes(
   conversations: ParsedConversation[],
 ): MemoryCandidate[] {
-  // Count unique words per conversation
-  const wordConvCount = new Map<string, number>();
+  // Count unique ngrams per conversation
+  const ngramConvCount = new Map<string, number>();
 
   for (const conv of conversations) {
-    const wordsInConv = new Set<string>();
+    const ngramsInConv = new Set<string>();
+
+    // Collect all tokenized words for this conversation
+    const allWords: string[] = [];
 
     // Tokenize title
-    for (const word of tokenize(conv.title)) {
-      wordsInConv.add(word);
-    }
+    allWords.push(...tokenize(conv.title));
 
     // Tokenize user messages only
     for (const msg of conv.messages) {
       if (msg.role !== "user") continue;
-      for (const word of tokenize(msg.text)) {
-        wordsInConv.add(word);
-      }
+      allWords.push(...tokenize(msg.text));
+    }
+
+    // Extract ngrams and add to set (dedup within conversation)
+    for (const ngram of extractNgrams(allWords)) {
+      ngramsInConv.add(ngram);
     }
 
     // Increment counts
-    for (const word of wordsInConv) {
-      wordConvCount.set(word, (wordConvCount.get(word) ?? 0) + 1);
+    for (const ngram of ngramsInConv) {
+      ngramConvCount.set(ngram, (ngramConvCount.get(ngram) ?? 0) + 1);
     }
   }
 
-  // Filter to words appearing in 3+ conversations, sort by frequency desc
-  const themes: Array<{ word: string; count: number }> = [];
-  for (const [word, count] of wordConvCount.entries()) {
+  // Filter to ngrams appearing in 3+ conversations, sort by frequency desc
+  const themes: Array<{ ngram: string; count: number }> = [];
+  for (const [ngram, count] of ngramConvCount.entries()) {
     if (count >= 3) {
-      themes.push({ word, count });
+      themes.push({ ngram, count });
     }
   }
   themes.sort((a, b) => b.count - a.count);
@@ -73,11 +105,11 @@ export function extractThemes(
   const candidates: MemoryCandidate[] = [];
   let counter = 0;
 
-  for (const { word, count } of themes) {
+  for (const { ngram, count } of themes) {
     const confidence: Confidence = count >= 5 ? "high" : "medium";
     candidates.push({
       id: `theme-${counter++}`,
-      text: `Recurring interest: "${word}" (appeared in ${count} conversations)`,
+      text: `Recurring interest: "${ngram}" (appeared in ${count} conversations)`,
       category: "theme",
       confidence,
       sourceTitle: "multiple",
