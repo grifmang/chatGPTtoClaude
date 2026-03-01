@@ -4,6 +4,7 @@ import { extractTechnical } from "./technicalExtractor";
 import { extractProjects } from "./projectExtractor";
 import { extractIdentity } from "./identityExtractor";
 import { extractThemes } from "./themeExtractor";
+import { dedup } from "./dedup";
 
 // ─── Re-exports ──────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ export {
   extractProjects,
   extractIdentity,
   extractThemes,
+  dedup,
 };
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────
@@ -24,11 +26,12 @@ export {
 export function extractAllMemories(
   conversations: ParsedConversation[],
 ): MemoryCandidate[] {
-  return [
+  const raw = [
     ...extractPreferences(conversations),
     ...extractTechnical(conversations),
     ...extractProjects(conversations),
     ...extractIdentity(conversations),
     ...extractThemes(conversations),
   ];
+  return dedup(raw);
 }
