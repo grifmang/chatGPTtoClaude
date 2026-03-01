@@ -1,30 +1,49 @@
-# ChatGPT to Claude Memory
+# MigrateGPT
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
-[![Tests](https://img.shields.io/badge/tests-251%20passing-brightgreen)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/tests-255%20passing-brightgreen)](https://vitest.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Migrate your ChatGPT conversation memories to Claude — entirely in your browser. No server, no data leaves your machine.
+**[migrategpt.org](https://migrategpt.org)**
 
-## How It Works
+Migrate your ChatGPT conversation memories to Claude. Runs entirely in your browser — no server, no sign-up, no data leaves your machine.
 
-ChatGPT to Claude Memory extracts facts about you from your ChatGPT conversations (preferences, technical profile, projects, identity, recurring interests) and formats them for import into Claude's memory.
+## What It Does
 
-**Two ways to get your data:**
+MigrateGPT scans your ChatGPT conversations and extracts facts about you — preferences, tech stack, projects, identity, recurring interests — then formats them for Claude's memory. You review everything before exporting.
 
-1. **ZIP export** — Request a data export from ChatGPT, download the ZIP, and upload it here
-2. **Bookmarklet** (fast way) — Drag a bookmarklet to your bookmark bar, click it on chatgpt.com, and your conversations are sent directly to the app via `postMessage`
+## Getting Started
 
-**Two extraction modes:**
+### Option 1: Bookmarklet (fastest)
 
-- **Heuristic (default)** — Five pattern-matching extractors run locally with zero API calls
-- **API-enhanced (optional)** — Provide your own Claude API key for LLM-powered extraction via Claude Haiku
+1. Visit [migrategpt.org](https://migrategpt.org)
+2. Drag the **"Export ChatGPT"** button to your bookmark bar
+3. Open [chatgpt.com](https://chatgpt.com) and click the bookmarklet
+4. Watch the progress overlay as it fetches your conversations
+5. Click **"Open MigrateGPT"** when the export finishes
+6. Review, approve, and export your memories
 
-After extraction, you review and approve each memory candidate, then copy the result into a new Claude conversation to save it.
+### Option 2: ZIP Upload
 
-## Quick Start
+1. Go to [ChatGPT Settings > Data Controls > Export Data](https://chatgpt.com/#settings/DataControls)
+2. Request and download your data export ZIP
+3. Upload it at [migrategpt.org](https://migrategpt.org)
+
+### Reviewing Memories
+
+After import, you'll see a list of extracted memory candidates with confidence levels (high / medium / low). Use the bulk action buttons at the top to quickly approve or reject by confidence level, or page through and decide individually. When you're done, hit **Export** and paste the result into Claude.
+
+## Privacy & Security
+
+- **100% client-side** — no backend, no database, no analytics. Your conversations never leave your browser.
+- **Bookmarklet is read-only** — it reads your ChatGPT session token to fetch conversations via ChatGPT's own API. The token is never sent anywhere else.
+- **postMessage origin validation** — the app only accepts data from `chatgpt.com` and `chat.openai.com`
+- **Open source** — audit the code yourself. The bookmarklet source is in [`bookmarklet/src/`](bookmarklet/src/).
+- **Optional API key** — if you use Claude API extraction, your key is held in memory only and sent directly to `api.anthropic.com`
+
+## Development
 
 ```bash
 # Install dependencies
@@ -35,9 +54,10 @@ npm run dev
 
 # Run tests
 npm test
-```
 
-The app will be available at `http://localhost:5173`.
+# Build for production (includes bookmarklet)
+npm run build
+```
 
 ### Building the Bookmarklet
 
@@ -47,7 +67,7 @@ npm install
 npm run build
 ```
 
-This produces `bookmarklet/dist/bookmarklet.js`, which is imported by the web app at build time via Vite's `?raw` import.
+Produces `bookmarklet/dist/bookmarklet.js`, imported by the web app at build time via Vite's `?raw` import.
 
 ## Project Structure
 
@@ -70,7 +90,7 @@ This produces `bookmarklet/dist/bookmarklet.js`, which is imported by the web ap
 │   │   └── markdownExport.ts    # Formats approved memories as Markdown
 │   └── components/
 │       ├── UploadPage.tsx       # 3-step wizard with bookmarklet install
-│       ├── ReviewPage.tsx       # Review/approve/reject candidates
+│       ├── ReviewPage.tsx       # Paginated review with bulk actions
 │       ├── MemoryCard.tsx       # Individual memory candidate card
 │       ├── ExportModal.tsx      # Copy-to-clipboard export flow
 │       └── Stepper.tsx          # Step indicator
@@ -83,50 +103,14 @@ This produces `bookmarklet/dist/bookmarklet.js`, which is imported by the web ap
 └── docs/plans/                  # Design and implementation docs
 ```
 
-## Security
-
-This app is designed with a privacy-first approach:
-
-- **Runs entirely in your browser** — no backend server, no data transmitted to third parties
-- **API key is memory-only** — if you use the optional Claude API extraction, your key is held in memory only, never persisted to storage, and sent directly to `api.anthropic.com`
-- **postMessage origin validation** — the app only accepts messages from `chatgpt.com` and `chat.openai.com`; localhost is gated behind dev mode
-- **No innerHTML** — all text rendering uses React JSX (auto-escaped) or `.textContent` (bookmarklet overlay)
-- **Input validation** — ZIP contents are validated as JSON arrays; API responses are validated against category/confidence whitelists
-- **Pagination safeguard** — bookmarklet limits to 500 pages to prevent infinite loops
-
-## Testing
-
-251 tests across 21 test files covering:
-
-- Component rendering and interaction (UploadPage, ReviewPage, MemoryCard, ExportModal, Stepper)
-- App state transitions and error handling
-- postMessage listener security (origin validation, type checking)
-- ZIP parsing edge cases (invalid JSON, missing files, non-array data)
-- Conversation parser (tree walking, content types, null handling)
-- All 5 heuristic extractors (pattern matching, deduplication, edge cases)
-- API extractor (prompt building, response parsing, batching, error handling)
-- Markdown export (grouping, sections, empty states)
-- Bookmarklet (hostname validation, cancellation, popup blocking, timeouts)
-- Overlay (DOM injection, XSS prevention, duplicate prevention)
-
-```bash
-# Run all tests (watch mode)
-npm test
-
-# Run once
-npm run test:run
-
-# Run bookmarklet tests
-cd bookmarklet && npm test
-```
-
 ## Tech Stack
 
-- **React 19** + **TypeScript 5.9** — UI framework
+- **React 19** + **TypeScript 5.9** — UI
 - **Vite 7** — build tool and dev server
-- **Vitest 4** + **React Testing Library** — testing
+- **Vitest 4** + **React Testing Library** — 255 tests across 21 files
 - **JSZip** — ZIP file parsing
 - **esbuild** — bookmarklet bundling
+- **Netlify** — static hosting
 
 ## License
 
